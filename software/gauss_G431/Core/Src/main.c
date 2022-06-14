@@ -1094,9 +1094,9 @@ void control_sm(void){
 		ctrl_sm_cnt++;
 		//delay 0.5s
 		if(ctrl_sm_cnt >= 8000){
-			ctrl_sm_state = ctrl_sm_state_curroffs;
-			ia_offs_sum = ib_offs_sum = ic_offs_sum = 0;
 			ctrl_sm_cnt = 0;
+			ia_offs_sum = ib_offs_sum = ic_offs_sum = 0;
+			ctrl_sm_state = ctrl_sm_state_curroffs;
 
 			myctrl.cnt_period = 160000; //10s
 			myctrl.cnt_reTrig = 1600;
@@ -1110,8 +1110,9 @@ void control_sm(void){
 		}
 	}
 	else if(ctrl_sm_state == ctrl_sm_state_ready){
-		ctrl_sm_cnt = 0;
-		if(button_pressed){
+		ctrl_sm_cnt++;
+		//if(button_pressed){
+		if(button_pressed || ctrl_sm_cnt >= 8000){  //with autostart after 0.5s
 			if(ctrl_sm_edge_detect){
 				control_sm_to_ccon_mode();
 			}
@@ -1142,6 +1143,7 @@ void control_sm(void){
 				calib_data.ic.offs = ic_offs_sum / 8000;
 			}
 			//Optionally, do not do this automatically, but only after command from master
+			ctrl_sm_cnt = 0;
 			control_sm_to_ready_mode();
 		}
 
