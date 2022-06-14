@@ -52,7 +52,8 @@ static calib_data_t calib_data = {
 		.ib = {.offs = 0, .gain = -1900},
 		.ic = {.offs = 0, .gain = -1900},
 		.i_autoOffs = true,
-		.vbus = {.offs = 47, .gain = 551}
+		.vbus = {.offs = 47, .gain = 551},
+		.poti = {.offs = 0,  .gain = 256}
 };
 
 
@@ -65,7 +66,6 @@ static void MX_OPAMP3_Init(void);
 static void MX_OPAMP1_Init(void);
 static void MX_OPAMP2_Init(void);
 static void MX_TIM1_Init(void);
-static void MX_TIM4_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_ADC2_Init(void);
 static void MX_CORDIC_Init(void);
@@ -120,7 +120,6 @@ int main(void)
   MX_OPAMP1_Init();
   MX_OPAMP2_Init();
   MX_TIM1_Init();
-  MX_TIM4_Init();
   MX_ADC1_Init();
   MX_ADC2_Init();
   MX_CORDIC_Init();
@@ -221,7 +220,6 @@ void SystemClock_Config(void)
   LL_Init1msTick(160000000);
 
   LL_SetSystemCoreClock(160000000);
-  LL_RCC_SetADCClockSource(LL_RCC_ADC12_CLKSOURCE_SYSCLK);
 }
 
 /**
@@ -242,6 +240,8 @@ static void MX_ADC1_Init(void)
   LL_ADC_INJ_InitTypeDef ADC_INJ_InitStruct = {0};
 
   LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  LL_RCC_SetADCClockSource(LL_RCC_ADC12_CLKSOURCE_SYSCLK);
 
   /* Peripheral clock enable */
   LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_ADC12);
@@ -290,7 +290,7 @@ static void MX_ADC1_Init(void)
   ADC_CommonInitStruct.Multimode = LL_ADC_MULTI_INDEPENDENT;
   LL_ADC_CommonInit(__LL_ADC_COMMON_INSTANCE(ADC1), &ADC_CommonInitStruct);
   ADC_INJ_InitStruct.TriggerSource = LL_ADC_INJ_TRIG_EXT_TIM1_TRGO;
-  ADC_INJ_InitStruct.SequencerLength = LL_ADC_INJ_SEQ_SCAN_ENABLE_2RANKS;
+  ADC_INJ_InitStruct.SequencerLength = LL_ADC_INJ_SEQ_SCAN_ENABLE_3RANKS;
   ADC_INJ_InitStruct.SequencerDiscont = LL_ADC_INJ_SEQ_DISCONT_DISABLE;
   ADC_INJ_InitStruct.TrigAuto = LL_ADC_INJ_TRIG_INDEPENDENT;
   LL_ADC_INJ_Init(ADC1, &ADC_INJ_InitStruct);
@@ -336,6 +336,11 @@ static void MX_ADC1_Init(void)
   LL_ADC_INJ_SetSequencerRanks(ADC1, LL_ADC_INJ_RANK_2, LL_ADC_CHANNEL_1);
   LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_1, LL_ADC_SAMPLINGTIME_2CYCLES_5);
   LL_ADC_SetChannelSingleDiff(ADC1, LL_ADC_CHANNEL_1, LL_ADC_SINGLE_ENDED);
+  /** Configure Injected Channel
+  */
+  LL_ADC_INJ_SetSequencerRanks(ADC1, LL_ADC_INJ_RANK_3, LL_ADC_CHANNEL_11);
+  LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_11, LL_ADC_SAMPLINGTIME_2CYCLES_5);
+  LL_ADC_SetChannelSingleDiff(ADC1, LL_ADC_CHANNEL_11, LL_ADC_SINGLE_ENDED);
   /* USER CODE BEGIN ADC1_Init 2 */
 
 
@@ -358,6 +363,8 @@ static void MX_ADC2_Init(void)
   LL_ADC_InitTypeDef ADC_InitStruct = {0};
   LL_ADC_REG_InitTypeDef ADC_REG_InitStruct = {0};
   LL_ADC_INJ_InitTypeDef ADC_INJ_InitStruct = {0};
+
+  LL_RCC_SetADCClockSource(LL_RCC_ADC12_CLKSOURCE_SYSCLK);
 
   /* Peripheral clock enable */
   LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_ADC12);
@@ -731,72 +738,6 @@ static void MX_TIM1_Init(void)
 }
 
 /**
-  * @brief TIM4 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM4_Init(void)
-{
-
-  /* USER CODE BEGIN TIM4_Init 0 */
-
-  /* USER CODE END TIM4_Init 0 */
-
-  LL_TIM_InitTypeDef TIM_InitStruct = {0};
-
-  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-  /* Peripheral clock enable */
-  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM4);
-
-  LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOB);
-  /**TIM4 GPIO Configuration
-  PB6   ------> TIM4_CH1
-  PB7   ------> TIM4_CH2
-  */
-  GPIO_InitStruct.Pin = ENC_A_Pin;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  GPIO_InitStruct.Alternate = LL_GPIO_AF_2;
-  LL_GPIO_Init(ENC_A_GPIO_Port, &GPIO_InitStruct);
-
-  GPIO_InitStruct.Pin = ENC_B_Pin;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  GPIO_InitStruct.Alternate = LL_GPIO_AF_2;
-  LL_GPIO_Init(ENC_B_GPIO_Port, &GPIO_InitStruct);
-
-  /* USER CODE BEGIN TIM4_Init 1 */
-
-  /* USER CODE END TIM4_Init 1 */
-  TIM_InitStruct.Prescaler = 0;
-  TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
-  TIM_InitStruct.Autoreload = 4095;
-  TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
-  LL_TIM_Init(TIM4, &TIM_InitStruct);
-  LL_TIM_DisableARRPreload(TIM4);
-  LL_TIM_SetEncoderMode(TIM4, LL_TIM_ENCODERMODE_X4_TI12);
-  LL_TIM_IC_SetActiveInput(TIM4, LL_TIM_CHANNEL_CH1, LL_TIM_ACTIVEINPUT_DIRECTTI);
-  LL_TIM_IC_SetPrescaler(TIM4, LL_TIM_CHANNEL_CH1, LL_TIM_ICPSC_DIV1);
-  LL_TIM_IC_SetFilter(TIM4, LL_TIM_CHANNEL_CH1, LL_TIM_IC_FILTER_FDIV2_N6);
-  LL_TIM_IC_SetPolarity(TIM4, LL_TIM_CHANNEL_CH1, LL_TIM_IC_POLARITY_RISING);
-  LL_TIM_IC_SetActiveInput(TIM4, LL_TIM_CHANNEL_CH2, LL_TIM_ACTIVEINPUT_DIRECTTI);
-  LL_TIM_IC_SetPrescaler(TIM4, LL_TIM_CHANNEL_CH2, LL_TIM_ICPSC_DIV1);
-  LL_TIM_IC_SetFilter(TIM4, LL_TIM_CHANNEL_CH2, LL_TIM_IC_FILTER_FDIV2_N6);
-  LL_TIM_IC_SetPolarity(TIM4, LL_TIM_CHANNEL_CH2, LL_TIM_IC_POLARITY_RISING);
-  LL_TIM_SetTriggerOutput(TIM4, LL_TIM_TRGO_RESET);
-  LL_TIM_DisableMasterSlaveMode(TIM4);
-  /* USER CODE BEGIN TIM4_Init 2 */
-
-  /* USER CODE END TIM4_Init 2 */
-
-}
-
-/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -833,6 +774,18 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
   LL_GPIO_Init(BUTTON_GPIO_Port, &GPIO_InitStruct);
+
+  /**/
+  GPIO_InitStruct.Pin = ENC_A_Pin;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(ENC_A_GPIO_Port, &GPIO_InitStruct);
+
+  /**/
+  GPIO_InitStruct.Pin = ENC_B_Pin;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(ENC_B_GPIO_Port, &GPIO_InitStruct);
 
   /**/
   GPIO_InitStruct.Pin = ENC_Z_Pin;
@@ -941,6 +894,7 @@ typedef struct{
 	uint16_t cnt_stopa;
 	uint16_t cnt_startb;
 	uint16_t cnt_stopb;
+	int16_t poti;
 } ctrl_data_t;
 static ctrl_data_t myctrl;
 
@@ -950,6 +904,30 @@ static uint8_t umin = 8;
 static int32_t ia_offs_sum;
 static int32_t ib_offs_sum;
 static int32_t ic_offs_sum;
+
+
+typedef enum {
+	sens_state_wft = 0,
+	sens_state_run = 1,
+	sens_state_rdy = 2
+} sens_states_t;
+
+typedef struct{
+	uint16_t cnt;
+	uint16_t spd;
+	uint32_t pos;
+	uint16_t level;
+	uint16_t hyst;
+	sens_states_t state;
+} sens_data_t;
+static sens_data_t mysens = {
+		.cnt = 0,
+		.spd = 0,
+		.pos = 0,
+		.level = 3500,
+		.hyst = 100,
+		.state = sens_state_wft
+};
 
 
 static bool button_pressed = 0;  //indicate a button press
@@ -1162,6 +1140,32 @@ void control_sm(void){
 
 }
 
+void sens_eval(void){
+	if( mysens.state == sens_state_wft){
+		mysens.cnt = 0;
+		if(myctrl.poti < mysens.level-mysens.hyst){
+			mysens.state = sens_state_run;
+		}
+	}
+	else if( mysens.state == sens_state_run){
+		mysens.cnt++;
+		if(myctrl.poti > mysens.level+mysens.hyst){
+			mysens.spd = 1600000/mysens.cnt;
+			mysens.pos = 0;
+			mysens.cnt = 0;
+			mysens.state = sens_state_rdy;
+		}
+	}
+	else if( mysens.state == sens_state_rdy){
+		mysens.cnt++;
+		mysens.pos += mysens.spd;
+		if(mysens.cnt > 32000){
+			mysens.state = sens_state_wft;
+		}
+	}
+
+}
+
 //Vermutl. 16kHz
 void main_pwm_ctrl(void){
 	if(LL_GPIO_IsInputPinSet(BUTTON_GPIO_Port, BUTTON_Pin)){
@@ -1171,10 +1175,10 @@ void main_pwm_ctrl(void){
 	}
 	LL_GPIO_SetPinPull(BUTTON_GPIO_Port, BUTTON_Pin, LL_GPIO_PULL_DOWN);
 
-	if(LL_GPIO_IsInputPinSet(ENC_Z_GPIO_Port, ENC_Z_Pin)){
-		trigger_in = 1;
-	} else{
+	if(LL_GPIO_IsInputPinSet(ENC_A_GPIO_Port, ENC_A_Pin)){
 		trigger_in = 0;
+	} else{
+		trigger_in = 1;
 	}
 
 
@@ -1201,6 +1205,9 @@ void main_pwm_ctrl(void){
 	}
 	int16_t divvbus = 32767/myctrl.vbus;
 
+	int16_t potiraw = (int16_t) LL_ADC_INJ_ReadConversionData12(ADC1, LL_ADC_INJ_RANK_3);
+	myctrl.poti = interp_linearTrsfm_i16(&calib_data.poti, potiraw);
+
 	int16_t ib_raw = (int16_t) LL_ADC_INJ_ReadConversionData12(ADC2, LL_ADC_INJ_RANK_1);
 	myctrl.ib = interp_linearTrsfm_i16(&calib_data.ib, ib_raw);
 
@@ -1223,23 +1230,13 @@ void main_pwm_ctrl(void){
 		}
 	}
 
+	sens_eval();
+
 	if (ctrl_sm_state == ctrl_sm_state_curroffs) {
 		ia_offs_sum -= ia_raw;
 		ib_offs_sum -= ib_raw;
 		ic_offs_sum -= ic_raw;
 	}
-
-	//Clarke
-	//int16_t ialpha = (  ((int32_t)myctrl.ia)*10923 + ((int32_t)myctrl.ib)*-5461 + ((int32_t)myctrl.ic)*-5461  ) / 16384;
-	//int16_t ibeta  = (                        ((int32_t)myctrl.ib)* 9459 + ((int32_t)myctrl.ic)*-9459  ) / 16384;
-	//int16_t i0 = 0; //might be also calculated
-
-
-	//Voltages in Q7.8
-	//int16_t ualpha = 0;
-	//int16_t ubeta = 0;
-	//int16_t iaref = 0;
-	//int16_t ibref = 0;
 
 
 	// *** CONTROLLERS: Position / Current ***
@@ -1279,18 +1276,7 @@ void main_pwm_ctrl(void){
 		myctrl.ua = control_pictrl_i16(&pi_a,myctrl.iaref,myctrl.ia);
 		myctrl.ub = control_pictrl_i16(&pi_b,myctrl.ibref,myctrl.ib);
 		myctrl.uc = -(myctrl.ua/2 + myctrl.ub/2);
-
-		//myctrl.uq = control_pictrl_i16(&pi_q,iqref,iq);
 	}
-
-
-	//ualpha =
-	//ubeta =
-
-	//Clarke
-	//int16_t ua = ualpha;
-	//int16_t ub = (  ((int32_t)(ualpha)) * -8192 + ((int32_t)(ubeta)) *  14189 ) / 16384;
-	//int16_t uc = (  ((int32_t)(ualpha)) * -8192 + ((int32_t)(ubeta)) * -14189 ) / 16384;
 
 
 	int16_t refs[3];
@@ -1358,4 +1344,3 @@ void assert_failed(uint8_t *file, uint32_t line)
 }
 #endif /* USE_FULL_ASSERT */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

@@ -80,6 +80,7 @@ typedef struct
 	bool i_autoOffs;
 	interp_lin_i16_t vbus;
 	interp_lin_i16_t temp;
+	interp_lin_i16_t poti;
 } calib_data_t;
 /* USER CODE END ET */
 
@@ -175,5 +176,3 @@ extern void MRF24J40_longAddressWrite(uint16_t address, uint8_t value);
 #endif
 
 #endif /* __MAIN_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
