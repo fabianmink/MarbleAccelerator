@@ -887,13 +887,14 @@ typedef struct{
 	int16_t iaval;
 	int16_t ibref;
 	int16_t ibval;
-	uint32_t cnt_ccon;
-	uint32_t cnt_period;
-	uint32_t cnt_reTrig;
-	uint16_t cnt_starta;
-	uint16_t cnt_stopa;
-	uint16_t cnt_startb;
-	uint16_t cnt_stopb;
+	//uint32_t cnt_ccon;
+	//uint32_t cnt_period;
+	//uint32_t cnt_reTrig;
+	uint32_t cnt_starta;
+	uint32_t cnt_stopa;
+	uint16_t deltaspda;
+	uint32_t cnt_startb;
+	uint32_t cnt_stopb;
 	int16_t poti;
 } ctrl_data_t;
 static ctrl_data_t myctrl;
@@ -915,6 +916,7 @@ typedef enum {
 typedef struct{
 	uint16_t cnt;
 	uint16_t spd;
+	uint16_t spd_chg;
 	uint32_t pos;
 	uint16_t level;
 	uint16_t hyst;
@@ -1007,6 +1009,7 @@ void control_sm_to_ready_mode(void){
 void control_sm_to_error(void){
 	//stop PWM
 	LL_TIM_DisableAllOutputs(TIM1); //PWM off
+	ctrl_sm_cnt = 0;
 	ctrl_sm_state = ctrl_sm_state_error;
 	int16_t refs[3] = {0,0,0};
 	pwm_setrefint_3ph_tim1(refs);
@@ -1018,7 +1021,7 @@ void control_sm_to_ccon_mode(void){
 	pi_a.i_val = 0;
 	pi_b.i_val = 0;
 	//pi_q.i_val = 0;
-	myctrl.cnt_ccon = 0;
+	//myctrl.cnt_ccon = 0;
 	ctrl_sm_state = ctrl_sm_state_ccon;
 	int16_t refs[3] = {0,0,0};
 	pwm_setrefint_3ph_tim1(refs);
@@ -1076,35 +1079,34 @@ void control_sm(void){
 			ia_offs_sum = ib_offs_sum = ic_offs_sum = 0;
 			ctrl_sm_state = ctrl_sm_state_curroffs;
 
-			myctrl.cnt_period = 160000; //10s
-			myctrl.cnt_reTrig = 1600;
-			myctrl.cnt_starta = 100;
-			myctrl.cnt_stopa = 550;
+			//myctrl.cnt_period = 160000; //10s
+			//myctrl.cnt_reTrig = 1600;
+
+			myctrl.cnt_starta = 6000000;
+			myctrl.cnt_stopa = 12000000;
+			myctrl.deltaspda = 20000;
 			myctrl.iaval = 3000; //ca. 10A
 
-			myctrl.cnt_startb = 550;
-			myctrl.cnt_stopb = 690;
+			myctrl.cnt_startb = 10000000;
+			myctrl.cnt_stopb = 15000000;
 			myctrl.ibval = 3500;
+			//myctrl.ibval = 0;
 		}
 	}
 	else if(ctrl_sm_state == ctrl_sm_state_ready){
 		ctrl_sm_cnt++;
 		//if(button_pressed){
-		if(button_pressed || ctrl_sm_cnt >= 8000){  //with autostart after 0.5s
-			if(ctrl_sm_edge_detect){
-				control_sm_to_ccon_mode();
-			}
+		if(ctrl_sm_cnt >= 8000){  //with autostart after 0.5s
+			control_sm_to_ccon_mode();
 		}
 		else{
 			ctrl_sm_edge_detect = 1;
 		}
 	}
 	else if(ctrl_sm_state == ctrl_sm_state_error){
-		ctrl_sm_cnt = 0;
-		if(button_pressed){
-			if(ctrl_sm_edge_detect){
-				control_sm_to_ready_mode();
-			}
+		ctrl_sm_cnt++;
+		if(ctrl_sm_cnt >= 80000){  //with autostart after 5s
+			control_sm_to_ready_mode();
 		}
 		else{
 			ctrl_sm_edge_detect = 1;
@@ -1159,7 +1161,7 @@ void sens_eval(void){
 	else if( mysens.state == sens_state_rdy){
 		mysens.cnt++;
 		mysens.pos += mysens.spd;
-		if(mysens.cnt > 32000){
+		if(mysens.cnt > 16000){
 			mysens.state = sens_state_wft;
 		}
 	}
@@ -1241,25 +1243,27 @@ void main_pwm_ctrl(void){
 
 	// *** CONTROLLERS: Position / Current ***
 	if(ctrl_sm_state == ctrl_sm_state_ccon){
-		myctrl.cnt_ccon++;
-		if( myctrl.cnt_ccon >= myctrl.cnt_period ){
-			myctrl.cnt_ccon=0;
-			dataRecTrig = 1;
-		}
-		else if( (myctrl.cnt_ccon >= myctrl.cnt_reTrig) &&  trigger_in){
-			myctrl.cnt_ccon=0;
-			dataRecTrig = 1;
-		}
+//		myctrl.cnt_ccon++;
+//		if( myctrl.cnt_ccon >= myctrl.cnt_period ){
+//			myctrl.cnt_ccon=0;
+//			dataRecTrig = 1;
+//		}
+//		else if( (myctrl.cnt_ccon >= myctrl.cnt_reTrig) &&  trigger_in){
+//			myctrl.cnt_ccon=0;
+//			dataRecTrig = 1;
+//		}
 
 
 		myctrl.iaref = 256*0; //0A
 		myctrl.ibref = 256*0; //0A
 		//ibref = 0;
 
-		if(   (myctrl.cnt_ccon > myctrl.cnt_starta) && (myctrl.cnt_ccon < myctrl.cnt_stopa)){
+
+		if(   (mysens.pos > myctrl.cnt_starta) && (mysens.pos < myctrl.cnt_stopa)){
 			myctrl.iaref = myctrl.iaval; //for testing
+			//mysens.spd = myctrl.deltaspda;
 		}
-		if(   (myctrl.cnt_ccon > myctrl.cnt_startb) && (myctrl.cnt_ccon < myctrl.cnt_stopb)){
+		if(   (mysens.pos > myctrl.cnt_startb) && (mysens.pos < myctrl.cnt_stopb)){
 			myctrl.ibref = myctrl.ibval; //for testing
 		}
 
