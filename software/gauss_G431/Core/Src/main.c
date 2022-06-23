@@ -892,7 +892,6 @@ typedef struct{
 	//uint32_t cnt_reTrig;
 	uint32_t cnt_starta;
 	uint32_t cnt_stopa;
-	uint16_t deltaspda;
 	uint32_t cnt_startb;
 	uint32_t cnt_stopb;
 	int16_t poti;
@@ -909,23 +908,32 @@ static int32_t ic_offs_sum;
 
 typedef enum {
 	sens_state_wft = 0,
-	sens_state_run = 1,
-	sens_state_rdy = 2
+	sens_state_run = 1, //inside sensor windows
+	sens_state_fly = 2, //behind sensor windows, "free flying"
+	sens_state_rdy = 3  //in coil
 } sens_states_t;
 
+typedef enum {
+	sens_cmd_none = 0,
+	sens_cmd_reset = 1
+}
+sens_cmd_t;
+
 typedef struct{
-	uint16_t cnt;
+	uint32_t cnt;
 	uint16_t spd;
-	uint16_t spd_chg;
 	uint32_t pos;
+	uint32_t trigpos;
 	uint16_t level;
 	uint16_t hyst;
 	sens_states_t state;
+	sens_cmd_t cmd;
 } sens_data_t;
 static sens_data_t mysens = {
 		.cnt = 0,
 		.spd = 0,
 		.pos = 0,
+		.trigpos = 6000000,
 		.level = 3500,
 		.hyst = 100,
 		.state = sens_state_wft
@@ -1082,13 +1090,13 @@ void control_sm(void){
 			//myctrl.cnt_period = 160000; //10s
 			//myctrl.cnt_reTrig = 1600;
 
-			myctrl.cnt_starta = 6000000;
-			myctrl.cnt_stopa = 12000000;
-			myctrl.deltaspda = 20000;
+			mysens.trigpos = 3000000;
+			myctrl.cnt_starta = 0;
+			myctrl.cnt_stopa = 550;
 			myctrl.iaval = 3000; //ca. 10A
 
-			myctrl.cnt_startb = 10000000;
-			myctrl.cnt_stopb = 15000000;
+			myctrl.cnt_startb = 500;
+			myctrl.cnt_stopb = 650;
 			myctrl.ibval = 3500;
 			//myctrl.ibval = 0;
 		}
@@ -1144,6 +1152,7 @@ void control_sm(void){
 
 void sens_eval(void){
 	if( mysens.state == sens_state_wft){
+		mysens.cmd = sens_cmd_none;
 		mysens.cnt = 0;
 		if(myctrl.poti < mysens.level-mysens.hyst){
 			mysens.state = sens_state_run;
@@ -1155,13 +1164,23 @@ void sens_eval(void){
 			mysens.spd = 1600000/mysens.cnt;
 			mysens.pos = 0;
 			mysens.cnt = 0;
+			mysens.state = sens_state_fly;
+		}
+	}
+	else if( mysens.state == sens_state_fly){
+		mysens.cnt++;
+		mysens.pos += mysens.spd;
+		if(mysens.cnt > 16000){
+			mysens.state = sens_state_wft;
+		}
+		if(mysens.pos > mysens.trigpos){
+			mysens.cnt = 0;
 			mysens.state = sens_state_rdy;
 		}
 	}
 	else if( mysens.state == sens_state_rdy){
 		mysens.cnt++;
-		mysens.pos += mysens.spd;
-		if(mysens.cnt > 16000){
+		if(mysens.cmd == sens_cmd_reset){
 			mysens.state = sens_state_wft;
 		}
 	}
@@ -1258,14 +1277,18 @@ void main_pwm_ctrl(void){
 		myctrl.ibref = 256*0; //0A
 		//ibref = 0;
 
+		if(mysens.state == sens_state_rdy){
+			if(   (mysens.cnt > myctrl.cnt_starta) && (mysens.cnt < myctrl.cnt_stopa)){
+				myctrl.iaref = myctrl.iaval; //for testing
+			}
+			if(   (mysens.cnt > myctrl.cnt_startb) && (mysens.cnt < myctrl.cnt_stopb)){
+				myctrl.ibref = myctrl.ibval; //for testing
+			}
+			if(mysens.cnt > myctrl.cnt_stopb){
+				mysens.cmd = sens_cmd_reset;
+			}
+		}
 
-		if(   (mysens.pos > myctrl.cnt_starta) && (mysens.pos < myctrl.cnt_stopa)){
-			myctrl.iaref = myctrl.iaval; //for testing
-			//mysens.spd = myctrl.deltaspda;
-		}
-		if(   (mysens.pos > myctrl.cnt_startb) && (mysens.pos < myctrl.cnt_stopb)){
-			myctrl.ibref = myctrl.ibval; //for testing
-		}
 
 
 	}
