@@ -1,6 +1,17 @@
 M = csvread('output.csv');
 y = M(:,2);
 F = M(:,4);
+Eco = M(:,5);
+Emag = M(:,6);
+
+%test
+% subplot(2,1,1)
+% plot(y,Eco,'b-','LineWidth',2)
+% hold on;
+% plot(y,Emag,'r-','LineWidth',1)
+% hold off;
+% subplot(2,1,2)
+% plot(y,F,'b-','LineWidth',2)
 
 %Modell (Kloss)
 y0 = -6;

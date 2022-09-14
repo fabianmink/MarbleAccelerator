@@ -125,11 +125,11 @@ mi_zoomnatural()
 	--print("y-Force on anchor: Fy/N = " .. Fy)
 	mo_groupselectblock()  --select everything
 
-	--Emag = mo_blockintegral(2)
+	Emag = mo_blockintegral(2)
 	Eco = mo_blockintegral(17)
 	mo_clearblock()
 
-	str = Icoil1 .. ", ".. ky .. ", " .. Fx .. ", " .. Fy .. ", " .. Eco
+	str = Icoil1 .. ", ".. ky .. ", " .. Fx .. ", " .. Fy .. ", " .. Eco .. ", " .. Emag
 	--print(str)
 	write(file,str.."\n")
 
