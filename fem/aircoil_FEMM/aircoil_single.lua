@@ -17,9 +17,7 @@ ms = 10 --Mesh size (optional, only if automesh off)
 file = openfile("output.csv", "w")
 
 istep = 100
-for ky=-20,20,0.25 do 
---for ky=-12,0,2 do 
-
+for ky=-20,0,0.25 do
 
 newdocument(0)
 mi_probdef(0,"millimeters","axi",1e-008)
@@ -83,8 +81,7 @@ mi_saveas("aircoil.fem")
 
 --mi_zoomnatural()
 
---for Icoil=0,10,2 do 
-	--Strom nochmal laden / aendern
+for Icoil=0,30,1 do 
 	mi_addcircprop('circuit', Icoil, 1) --Stromkreis: I A, in Serie
 	
 
@@ -114,7 +111,7 @@ mi_saveas("aircoil.fem")
 	--mo_zoom(0,-40,50,40)
 	--mo_savebitmap("outfile".. istep .. ".bmp")
 	istep = istep + 1;
---end
+end
 
 
 mi_close()  --close preprocessor
