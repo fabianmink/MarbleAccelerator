@@ -22,13 +22,6 @@ for ky=-20,0,0.25 do
 newdocument(0)
 mi_probdef(0,"millimeters","axi",1e-008)
 
-
---Kugel konstruieren
-mi_addnode(0,ky+kr)	
-mi_addnode(0,ky-kr)
-mi_addarc(0,(ky-kr),0,(ky+kr),180,1)
-
-	
 --Spule konstruieren
 mi_addnode(rx,-h/2)
 mi_addnode(rx,h/2)
@@ -38,6 +31,12 @@ mi_addsegment(rx,-h/2,rx,h/2)
 mi_addsegment(rx,h/2,rx+d,h/2)
 mi_addsegment(rx+d,h/2,rx+d,-h/2)
 mi_addsegment(rx+d,-h/2,rx,-h/2)
+
+--Kugel konstruieren
+mi_addnode(0,ky+kr)	
+mi_addnode(0,ky-kr)
+mi_addarc(0,(ky-kr),0,(ky+kr),180,1)
+
 
 --Punkte Begrenzung zu berechnender Bereich
 mi_addnode(0,rbound)
