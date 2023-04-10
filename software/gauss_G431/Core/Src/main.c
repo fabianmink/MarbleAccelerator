@@ -43,6 +43,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 
+FDCAN_HandleTypeDef hfdcan1;
+
 /* USER CODE BEGIN PV */
 
 
@@ -56,6 +58,11 @@ static calib_data_t calib_data = {
 		.poti = {.offs = 0,  .gain = 256}
 };
 
+static FDCAN_RxHeaderTypeDef RxHeader;
+static uint8_t RxData[8];
+static FDCAN_TxHeaderTypeDef TxHeader;
+static uint8_t TxData[8];
+
 
 /* USER CODE END PV */
 
@@ -68,13 +75,94 @@ static void MX_OPAMP2_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_ADC2_Init(void);
-static void MX_CORDIC_Init(void);
+static void MX_FDCAN1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+static void FDCAN_Config(void)
+{
+  FDCAN_FilterTypeDef sFilterConfig;
+
+  /* Configure Rx filter */
+  sFilterConfig.IdType = FDCAN_STANDARD_ID;
+  sFilterConfig.FilterIndex = 0;
+  sFilterConfig.FilterType = FDCAN_FILTER_MASK; //FDCAN_FILTER_RANGE, FDCAN_FILTER_DUAL ...
+  sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+  sFilterConfig.FilterID1 = 0x321;
+  sFilterConfig.FilterID2 = 0x7FF;
+  if (HAL_FDCAN_ConfigFilter(&hfdcan1, &sFilterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /* Configure global filter:
+     Filter all remote frames with STD and EXT ID
+     Reject non matching frames with STD ID and EXT ID */
+  if (HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_REJECT, FDCAN_REJECT, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /* Start the FDCAN module */
+  if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  if (HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /* Prepare Tx Header */
+  TxHeader.Identifier = 0x321;
+  TxHeader.IdType = FDCAN_STANDARD_ID;
+  TxHeader.TxFrameType = FDCAN_DATA_FRAME;
+  TxHeader.DataLength = FDCAN_DLC_BYTES_2;
+  TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+  TxHeader.BitRateSwitch = FDCAN_BRS_OFF;
+  TxHeader.FDFormat = FDCAN_CLASSIC_CAN;
+  TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+  TxHeader.MessageMarker = 0;
+
+
+  //LL_GPIO_ResetOutputPin(CAN_TERM_GPIO_Port, CAN_TERM_Pin);
+  //LL_GPIO_ResetOutputPin(CAN_SHDN_GPIO_Port, CAN_SHDN_Pin);
+
+  LL_GPIO_SetOutputPin(CAN_TERM_GPIO_Port, CAN_TERM_Pin); //Enable 120 Ohm terminating Resistor
+}
+
+/**
+  * @brief  Rx FIFO 0 callback.
+  * @param  hfdcan: pointer to an FDCAN_HandleTypeDef structure that contains
+  *         the configuration information for the specified FDCAN.
+  * @param  RxFifo0ITs: indicates which Rx FIFO 0 interrupts are signalled.
+  *         This parameter can be any combination of @arg FDCAN_Rx_Fifo0_Interrupts.
+  * @retval None
+  */
+void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
+{
+  if((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != RESET)
+  {
+    /* Retrieve Rx messages from RX FIFO0 */
+    if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK)
+    {
+    Error_Handler();
+    }
+
+    /* Display LEDx */
+    if ((RxHeader.Identifier == 0x321) && (RxHeader.IdType == FDCAN_STANDARD_ID) && (RxHeader.DataLength == FDCAN_DLC_BYTES_2))
+    {
+      //LED_Display(RxData[0]);
+      //ubKeyNumber = RxData[0];
+    }
+  }
+}
+
 
 /* USER CODE END 0 */
 
@@ -91,17 +179,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-
-  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SYSCFG);
-  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
-
-  NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
-
-  /* System interrupt init*/
-
-  /** Disable the internal Pull-Up in Dead Battery pins of UCPD peripheral
-  */
-  LL_PWR_DisableUCPDDeadBattery();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -122,7 +200,7 @@ int main(void)
   MX_TIM1_Init();
   MX_ADC1_Init();
   MX_ADC2_Init();
-  MX_CORDIC_Init();
+  MX_FDCAN1_Init();
   /* USER CODE BEGIN 2 */
 
   //Enable Opamps
@@ -156,9 +234,24 @@ int main(void)
   LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2N);
   LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3);
   LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3N);
-  //LL_TIM_EnableAllOutputs(TIM1); //PWM on
+  //LL_TIM_EnableAllOutputs(TIM1); //PWM on (done in control FSM)
 
-  LL_TIM_EnableIT_UPDATE(TIM1);
+  //Config / Enable CAN
+  FDCAN_Config();
+  //HAL_FDCAN_Start(&hfdcan1); // done in FDCAN_Config
+
+  /* Set the data to be transmitted */
+  //TxData[0] = 0x12;
+  //TxData[1] = 0xAD;
+
+  /* Start the Transmission process */
+  //if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, TxData) != HAL_OK)
+  //{
+	  /* Transmission request Error */
+	  //Error_Handler();
+  //}
+
+  LL_TIM_EnableIT_UPDATE(TIM1); //PWM interrupt
 
   /* USER CODE END 2 */
 
@@ -216,10 +309,13 @@ void SystemClock_Config(void)
   LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
   LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
   LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_1);
-
-  LL_Init1msTick(160000000);
-
   LL_SetSystemCoreClock(160000000);
+
+   /* Update the time base */
+  if (HAL_InitTick (TICK_INT_PRIORITY) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 /**
@@ -433,29 +529,45 @@ static void MX_ADC2_Init(void)
 }
 
 /**
-  * @brief CORDIC Initialization Function
+  * @brief FDCAN1 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_CORDIC_Init(void)
+static void MX_FDCAN1_Init(void)
 {
 
-  /* USER CODE BEGIN CORDIC_Init 0 */
+  /* USER CODE BEGIN FDCAN1_Init 0 */
 
-  /* USER CODE END CORDIC_Init 0 */
+  /* USER CODE END FDCAN1_Init 0 */
 
-  /* Peripheral clock enable */
-  LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_CORDIC);
+  /* USER CODE BEGIN FDCAN1_Init 1 */
 
-  /* USER CODE BEGIN CORDIC_Init 1 */
+  /* USER CODE END FDCAN1_Init 1 */
+  hfdcan1.Instance = FDCAN1;
+  hfdcan1.Init.ClockDivider = FDCAN_CLOCK_DIV1;
+  hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
+  hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
+  hfdcan1.Init.AutoRetransmission = DISABLE;
+  hfdcan1.Init.TransmitPause = DISABLE;
+  hfdcan1.Init.ProtocolException = DISABLE;
+  hfdcan1.Init.NominalPrescaler = 1;
+  hfdcan1.Init.NominalSyncJumpWidth = 1;
+  hfdcan1.Init.NominalTimeSeg1 = 99;
+  hfdcan1.Init.NominalTimeSeg2 = 60;
+  hfdcan1.Init.DataPrescaler = 1;
+  hfdcan1.Init.DataSyncJumpWidth = 1;
+  hfdcan1.Init.DataTimeSeg1 = 1;
+  hfdcan1.Init.DataTimeSeg2 = 1;
+  hfdcan1.Init.StdFiltersNbr = 0;
+  hfdcan1.Init.ExtFiltersNbr = 0;
+  hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
+  if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN FDCAN1_Init 2 */
 
-  /* USER CODE END CORDIC_Init 1 */
-
-  /* nothing else to be configured */
-
-  /* USER CODE BEGIN CORDIC_Init 2 */
-
-  /* USER CODE END CORDIC_Init 2 */
+  /* USER CODE END FDCAN1_Init 2 */
 
 }
 
@@ -753,7 +865,21 @@ static void MX_GPIO_Init(void)
   LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOB);
 
   /**/
+  LL_GPIO_ResetOutputPin(CAN_TERM_GPIO_Port, CAN_TERM_Pin);
+
+  /**/
   LL_GPIO_ResetOutputPin(LED_GPIO_Port, LED_Pin);
+
+  /**/
+  LL_GPIO_ResetOutputPin(CAN_SHDN_GPIO_Port, CAN_SHDN_Pin);
+
+  /**/
+  GPIO_InitStruct.Pin = CAN_TERM_Pin;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(CAN_TERM_GPIO_Port, &GPIO_InitStruct);
 
   /**/
   GPIO_InitStruct.Pin = LED_Pin;
@@ -774,6 +900,14 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
   LL_GPIO_Init(BUTTON_GPIO_Port, &GPIO_InitStruct);
+
+  /**/
+  GPIO_InitStruct.Pin = CAN_SHDN_Pin;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(CAN_SHDN_GPIO_Port, &GPIO_InitStruct);
 
   /**/
   GPIO_InitStruct.Pin = ENC_A_Pin;
@@ -969,6 +1103,28 @@ static int dataRecTrig = 0;
 static datarec_states_t myDataRecState = datarec_state_startup;
 
 
+static struct{
+	int cnt;
+} myCanData;
+
+void can_init(void){
+	myCanData.cnt = 0;
+}
+
+void can_sm(void){
+	myCanData.cnt++;
+	if(myCanData.cnt >= 16){
+		myCanData.cnt = 0;
+		TxData[0] = 0x34;
+		TxData[1] = 0x56;
+		if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, TxData) != HAL_OK)
+		{
+			/* Transmission request Error */
+			//Error_Handler();
+		}
+	}
+}
+
 
 typedef enum {
 	ctrl_sm_state_startup = 0,
@@ -977,8 +1133,6 @@ typedef enum {
 	ctrl_sm_state_ccon = 4,
 	ctrl_sm_state_error = 8
 } ctrl_sm_states_t;
-
-
 
 //Current controllers
 static control_pictrl_i16_t pi_a = {
@@ -998,12 +1152,9 @@ static control_pictrl_i16_t pi_b = {
 };
 
 
-
 static ctrl_sm_states_t ctrl_sm_state = ctrl_sm_state_startup;
 static int ctrl_sm_cnt = 0;
 static int ctrl_sm_edge_detect = 0;
-
-
 
 void control_sm_to_ready_mode(void){
 	//stop PWM
@@ -1012,6 +1163,8 @@ void control_sm_to_ready_mode(void){
 	int16_t refs[3] = {0,0,0};
 	pwm_setrefint_3ph_tim1(refs);
 	ctrl_sm_edge_detect = 0;
+
+	can_init();
 }
 
 void control_sm_to_error(void){
@@ -1036,6 +1189,7 @@ void control_sm_to_ccon_mode(void){
 	LL_TIM_EnableAllOutputs(TIM1); //PWM on
 	ctrl_sm_edge_detect = 0;
 }
+
 
 void datarec_sm(void){
 	if(myDataRecState == datarec_state_startup){
@@ -1066,12 +1220,6 @@ void datarec_sm(void){
 			myDataRecState = datarec_state_wft;
 		}
 	}
-
-
-
-
-
-
 }
 
 
@@ -1092,12 +1240,12 @@ void control_sm(void){
 
 			mysens.trigpos = 3000000;
 			myctrl.cnt_starta = 0;
-			myctrl.cnt_stopa = 550;
+			myctrl.cnt_stopa = 50;
 			myctrl.iaval = 3000; //ca. 10A
 
-			myctrl.cnt_startb = 500;
-			myctrl.cnt_stopb = 650;
-			myctrl.ibval = 3500;
+			myctrl.cnt_startb = 50;
+			myctrl.cnt_stopb = 440;
+			myctrl.ibval = 4200;
 			//myctrl.ibval = 0;
 		}
 	}
@@ -1187,7 +1335,7 @@ void sens_eval(void){
 
 }
 
-//Vermutl. 16kHz
+//Vermutl. 16kHz  //todo: Check!!
 void main_pwm_ctrl(void){
 	if(LL_GPIO_IsInputPinSet(BUTTON_GPIO_Port, BUTTON_Pin)){
 		button_pressed = 0;
@@ -1332,6 +1480,7 @@ void main_pwm_ctrl(void){
 	pwm_setrefint_3ph_tim1(refs);
 
 	datarec_sm();
+	can_sm();
 
 	LL_GPIO_SetPinPull(BUTTON_GPIO_Port, BUTTON_Pin, LL_GPIO_PULL_NO);
 }
