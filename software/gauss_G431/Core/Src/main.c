@@ -122,7 +122,7 @@ static void FDCAN_Config(void)
   TxHeader.Identifier = 0x321;
   TxHeader.IdType = FDCAN_STANDARD_ID;
   TxHeader.TxFrameType = FDCAN_DATA_FRAME;
-  TxHeader.DataLength = FDCAN_DLC_BYTES_2;
+  TxHeader.DataLength = FDCAN_DLC_BYTES_6;
   TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
   TxHeader.BitRateSwitch = FDCAN_BRS_OFF;
   TxHeader.FDFormat = FDCAN_CLASSIC_CAN;
@@ -1103,23 +1103,33 @@ static int dataRecTrig = 0;
 static datarec_states_t myDataRecState = datarec_state_startup;
 
 
-static struct{
+static volatile struct{
 	int cnt;
+	int runs;
+	int errors;
 } myCanData;
 
 void can_init(void){
 	myCanData.cnt = 0;
+	myCanData.runs = 0;
+	myCanData.errors = 0;
 }
 
 void can_sm(void){
 	myCanData.cnt++;
-	if(myCanData.cnt >= 16){
+	if(myCanData.cnt >= 8){
 		myCanData.cnt = 0;
 		TxData[0] = 0x34;
-		TxData[1] = 0x56;
+		TxData[1]++;
+		TxData[2] = ((myctrl.ua) & 0xFF00)>>8;
+		TxData[3] = ((myctrl.ub) & 0xFF00)>>8;
+		TxData[4] = ((myctrl.ia) & 0xFF00)>>8;
+		TxData[5] = ((myctrl.ib) & 0xFF00)>>8;
+		myCanData.runs++;
 		if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, TxData) != HAL_OK)
 		{
 			/* Transmission request Error */
+			myCanData.errors++;
 			//Error_Handler();
 		}
 	}
@@ -1336,6 +1346,7 @@ void sens_eval(void){
 }
 
 //Vermutl. 16kHz  //todo: Check!!
+//scheint nur 8kHz zu sein
 void main_pwm_ctrl(void){
 	if(LL_GPIO_IsInputPinSet(BUTTON_GPIO_Port, BUTTON_Pin)){
 		button_pressed = 0;
