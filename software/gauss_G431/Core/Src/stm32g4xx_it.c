@@ -220,16 +220,18 @@ void TIM1_UP_TIM16_IRQHandler(void)
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 0 */
 	LL_TIM_ClearFlag_UPDATE(TIM1); //Always do at beginning of ISR before GPIO access!!
 
+	main_pwm_ctrl();
+
 	//return ((TIM1->CR1) & TIM_CR1_DIR); //0 = upcounting, 1 = downcounting ??!!?!
 
-	if(   (TIM1->CR1) & TIM_CR1_DIR   ){
-		//upcounting, correct
-		LL_TIM_SetRepetitionCounter(TIM1, 1);
-		main_pwm_ctrl();
-	}
-	else {
-		LL_TIM_SetRepetitionCounter(TIM1, 2);
-	}
+//	if(   (TIM1->CR1) & TIM_CR1_DIR   ){
+//		//upcounting, correct
+//		LL_TIM_SetRepetitionCounter(TIM1, 1);
+//		main_pwm_ctrl();
+//	}
+//	else {
+//		LL_TIM_SetRepetitionCounter(TIM1, 2);
+//	}
 
 
 

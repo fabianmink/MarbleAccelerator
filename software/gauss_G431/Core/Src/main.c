@@ -747,7 +747,7 @@ static void MX_TIM1_Init(void)
   TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_CENTER_UP;
   TIM_InitStruct.Autoreload = 2499;
   TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
-  TIM_InitStruct.RepetitionCounter = 1;
+  TIM_InitStruct.RepetitionCounter = 3;
   LL_TIM_Init(TIM1, &TIM_InitStruct);
   LL_TIM_EnableARRPreload(TIM1);
   LL_TIM_SetClockSource(TIM1, LL_TIM_CLOCKSOURCE_INTERNAL);
@@ -1117,7 +1117,7 @@ void can_init(void){
 
 void can_sm(void){
 	myCanData.cnt++;
-	if(myCanData.cnt >= 8){
+	if(myCanData.cnt >= 16){
 		myCanData.cnt = 0;
 		TxData[0] = 0x34;
 		TxData[1]++;
@@ -1345,8 +1345,8 @@ void sens_eval(void){
 
 }
 
-//Vermutl. 16kHz  //todo: Check!!
-//scheint nur 8kHz zu sein
+//32kHz PWM
+//16kHz Aufruf (??)
 void main_pwm_ctrl(void){
 	if(LL_GPIO_IsInputPinSet(BUTTON_GPIO_Port, BUTTON_Pin)){
 		button_pressed = 0;
