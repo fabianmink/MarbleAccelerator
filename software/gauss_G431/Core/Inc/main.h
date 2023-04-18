@@ -28,8 +28,8 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
+#include "stm32g4xx_hal.h"
 #include "stm32g4xx_ll_adc.h"
-#include "stm32g4xx_ll_cordic.h"
 #include "stm32g4xx_ll_opamp.h"
 #include "stm32g4xx_ll_rcc.h"
 #include "stm32g4xx_ll_bus.h"
@@ -42,10 +42,6 @@ extern "C" {
 #include "stm32g4xx_ll_dma.h"
 #include "stm32g4xx_ll_tim.h"
 #include "stm32g4xx_ll_gpio.h"
-
-#if defined(USE_FULL_ASSERT)
-#include "stm32_assert.h"
-#endif /* USE_FULL_ASSERT */
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -127,6 +123,8 @@ extern void MRF24J40_longAddressWrite(uint16_t address, uint8_t value);
 /* Private defines -----------------------------------------------------------*/
 #define PWM_1N_Pin LL_GPIO_PIN_13
 #define PWM_1N_GPIO_Port GPIOC
+#define CAN_TERM_Pin LL_GPIO_PIN_14
+#define CAN_TERM_GPIO_Port GPIOC
 #define VBUS_Pin LL_GPIO_PIN_0
 #define VBUS_GPIO_Port GPIOA
 #define POTI_Pin LL_GPIO_PIN_12
@@ -143,30 +141,24 @@ extern void MRF24J40_longAddressWrite(uint16_t address, uint8_t value);
 #define PWM_2_GPIO_Port GPIOA
 #define PWM_3_Pin LL_GPIO_PIN_10
 #define PWM_3_GPIO_Port GPIOA
+#define CAN_RX_Pin LL_GPIO_PIN_11
+#define CAN_RX_GPIO_Port GPIOA
 #define PWM_2N_Pin LL_GPIO_PIN_12
 #define PWM_2N_GPIO_Port GPIOA
 #define J3_PWM_Pin LL_GPIO_PIN_15
 #define J3_PWM_GPIO_Port GPIOA
 #define BUTTON_Pin LL_GPIO_PIN_10
 #define BUTTON_GPIO_Port GPIOC
+#define CAN_SHDN_Pin LL_GPIO_PIN_11
+#define CAN_SHDN_GPIO_Port GPIOC
 #define ENC_A_Pin LL_GPIO_PIN_6
 #define ENC_A_GPIO_Port GPIOB
 #define ENC_B_Pin LL_GPIO_PIN_7
 #define ENC_B_GPIO_Port GPIOB
 #define ENC_Z_Pin LL_GPIO_PIN_8
 #define ENC_Z_GPIO_Port GPIOB
-#ifndef NVIC_PRIORITYGROUP_0
-#define NVIC_PRIORITYGROUP_0         ((uint32_t)0x00000007) /*!< 0 bit  for pre-emption priority,
-                                                                 4 bits for subpriority */
-#define NVIC_PRIORITYGROUP_1         ((uint32_t)0x00000006) /*!< 1 bit  for pre-emption priority,
-                                                                 3 bits for subpriority */
-#define NVIC_PRIORITYGROUP_2         ((uint32_t)0x00000005) /*!< 2 bits for pre-emption priority,
-                                                                 2 bits for subpriority */
-#define NVIC_PRIORITYGROUP_3         ((uint32_t)0x00000004) /*!< 3 bits for pre-emption priority,
-                                                                 1 bit  for subpriority */
-#define NVIC_PRIORITYGROUP_4         ((uint32_t)0x00000003) /*!< 4 bits for pre-emption priority,
-                                                                 0 bit  for subpriority */
-#endif
+#define CAN_TX_Pin LL_GPIO_PIN_9
+#define CAN_TX_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
