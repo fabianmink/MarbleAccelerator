@@ -1116,10 +1116,11 @@ void can_init(void){
 }
 
 void can_sm(void){
-	if(mysens.state != sens_state_wft){ //send can only when active
+	//if(mysens.state != sens_state_wft){ //send CAN only when active
 
 	myCanData.cnt++;
-	if(myCanData.cnt >= 4){ //4kHz
+	if(myCanData.cnt >= 16){ //1kHz
+	//if(myCanData.cnt >= 4){ //4kHz
 		myCanData.cnt = 0;
 		//TxData[0] = 0x34;
 		//TxData[1]++;
@@ -1134,7 +1135,7 @@ void can_sm(void){
 			myCanData.errors++;
 			//Error_Handler();
 		}
-	}
+	//}
 
 	}
 }
