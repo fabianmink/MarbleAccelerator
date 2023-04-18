@@ -198,6 +198,8 @@ void SysTick_Handler(void)
 /* please refer to the startup file (startup_stm32g4xx.s).                    */
 /******************************************************************************/
 
+
+static int repCntChanged = 0;
 /**
   * @brief This function handles TIM1 update interrupt and TIM16 global interrupt.
   */
@@ -208,15 +210,27 @@ void TIM1_UP_TIM16_IRQHandler(void)
 
 	//return ((TIM1->CR1) & TIM_CR1_DIR); //0 = upcounting, 1 = downcounting ??!!?!
 
+	//LL_GPIO_SetOutputPin(ENC_Z_GPIO_Port, ENC_Z_Pin); //Debugging
+
 	if(   (TIM1->CR1) & TIM_CR1_DIR   ){
 		//upcounting, correct
-		LL_TIM_SetRepetitionCounter(TIM1, 1);
+		//LL_GPIO_SetOutputPin(ENC_B_GPIO_Port, ENC_B_Pin); //Debugging
 		main_pwm_ctrl();
 	}
 	else {
-		LL_TIM_SetRepetitionCounter(TIM1, 2);
+		if(repCntChanged == 0){
+			LL_TIM_SetRepetitionCounter(TIM1, 4);
+		} else if (repCntChanged==1){
+			LL_TIM_SetRepetitionCounter(TIM1, 3);
+		}
+		else if(repCntChanged>10){
+			repCntChanged = 0;
+		}
+		repCntChanged++;
 	}
 
+	//LL_GPIO_ResetOutputPin(ENC_B_GPIO_Port, ENC_B_Pin); //Debugging
+	//LL_GPIO_ResetOutputPin(ENC_Z_GPIO_Port, ENC_Z_Pin); //Debugging
 
 
   /* USER CODE END TIM1_UP_TIM16_IRQn 0 */
