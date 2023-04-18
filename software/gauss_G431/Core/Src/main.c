@@ -122,7 +122,7 @@ static void FDCAN_Config(void)
   TxHeader.Identifier = 0x321;
   TxHeader.IdType = FDCAN_STANDARD_ID;
   TxHeader.TxFrameType = FDCAN_DATA_FRAME;
-  TxHeader.DataLength = FDCAN_DLC_BYTES_6;
+  TxHeader.DataLength = FDCAN_DLC_BYTES_4;
   TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
   TxHeader.BitRateSwitch = FDCAN_BRS_OFF;
   TxHeader.FDFormat = FDCAN_CLASSIC_CAN;
@@ -367,7 +367,7 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 1 */
 
   /* USER CODE END ADC1_Init 1 */
-  /** Common config
+  /** Common config.
   */
   ADC_InitStruct.Resolution = LL_ADC_RESOLUTION_12B;
   ADC_InitStruct.DataAlignment = LL_ADC_DATA_ALIGN_RIGHT;
@@ -1116,15 +1116,17 @@ void can_init(void){
 }
 
 void can_sm(void){
+	if(mysens.state != sens_state_wft){ //send can only when active
+
 	myCanData.cnt++;
-	if(myCanData.cnt >= 16){
+	if(myCanData.cnt >= 4){ //4kHz
 		myCanData.cnt = 0;
-		TxData[0] = 0x34;
-		TxData[1]++;
-		TxData[2] = ((myctrl.ua) & 0xFF00)>>8;
-		TxData[3] = ((myctrl.ub) & 0xFF00)>>8;
-		TxData[4] = ((myctrl.ia) & 0xFF00)>>8;
-		TxData[5] = ((myctrl.ib) & 0xFF00)>>8;
+		//TxData[0] = 0x34;
+		//TxData[1]++;
+		TxData[0] = (myctrl.ua) / 64;
+		TxData[1] = (myctrl.ub) / 64;
+		TxData[2] = (myctrl.ia) / 64;
+		TxData[3] = (myctrl.ib) / 64;
 		myCanData.runs++;
 		if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, TxData) != HAL_OK)
 		{
@@ -1132,6 +1134,8 @@ void can_sm(void){
 			myCanData.errors++;
 			//Error_Handler();
 		}
+	}
+
 	}
 }
 
@@ -1147,16 +1151,16 @@ typedef enum {
 //Current controllers
 static control_pictrl_i16_t pi_a = {
 		.i_val = 0,
-		.ki = 10,
-		.kp = 10,
+		.ki = 60,
+		.kp = 6,
 		.max = 0,  // will be adapted "online" to vbus!!
 		.min = 0
 };
 
 static control_pictrl_i16_t pi_b = {
 		.i_val = 0,
-		.ki = 10,
-		.kp = 10,
+		.ki = 60,
+		.kp = 6,
 		.max = 0,
 		.min = 0
 };
@@ -1250,11 +1254,11 @@ void control_sm(void){
 
 			mysens.trigpos = 3000000;
 			myctrl.cnt_starta = 0;
-			myctrl.cnt_stopa = 50;
+			myctrl.cnt_stopa = 200;
 			myctrl.iaval = 3000; //ca. 10A
 
-			myctrl.cnt_startb = 50;
-			myctrl.cnt_stopb = 440;
+			myctrl.cnt_startb = 200;
+			myctrl.cnt_stopb = 800;
 			myctrl.ibval = 4200;
 			//myctrl.ibval = 0;
 		}
@@ -1434,7 +1438,7 @@ void main_pwm_ctrl(void){
 
 		myctrl.iaref = 256*0; //0A
 		myctrl.ibref = 256*0; //0A
-		//ibref = 0;
+
 
 		if(mysens.state == sens_state_rdy){
 			if(   (mysens.cnt > myctrl.cnt_starta) && (mysens.cnt < myctrl.cnt_stopa)){
