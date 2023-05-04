@@ -1152,16 +1152,16 @@ typedef enum {
 //Current controllers
 static control_pictrl_i16_t pi_a = {
 		.i_val = 0,
-		.ki = 60,
-		.kp = 6,
+		.ki = 40,
+		.kp = 4,
 		.max = 0,  // will be adapted "online" to vbus!!
 		.min = 0
 };
 
 static control_pictrl_i16_t pi_b = {
 		.i_val = 0,
-		.ki = 60,
-		.kp = 6,
+		.ki = 40,
+		.kp = 4,
 		.max = 0,
 		.min = 0
 };
