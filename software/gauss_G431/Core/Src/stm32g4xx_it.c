@@ -42,6 +42,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
+static int repCntChanged = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -211,8 +212,6 @@ void FDCAN1_IT0_IRQHandler(void)
 
   /* USER CODE END FDCAN1_IT0_IRQn 1 */
 }
-
-static int repCntChanged = 0;
 
 /**
   * @brief This function handles TIM1 update interrupt and TIM16 global interrupt.
