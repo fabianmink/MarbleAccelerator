@@ -1,14 +1,27 @@
 --this simulation is for 3D-printed coil carrier, v2a
 
-Icoil_a = 20 --coil a current
-Icoil_b = 0  --coil b current 
-zm = -50       --marble z position totally out of coils
+--coil a current
+Icoil_a_min = -20 
+Icoil_a_max = 20
+Icoil_a_step = 10 --must not be zero, even if min and max are identical; otherwise infinite loop
+
+--coil b current 
+Icoil_b_min = 0 
+Icoil_b_max = 0
+Icoil_b_step = 1 --must not be zero, even if min and max are identical; otherwise infinite loop
+
+zm_min = -40
+zm_max = 30
+zm_step = 1 --must not be zero, even if min and max are identical; otherwise infinite loop
+
+--zm = -50       --marble z position totally out of coils
 --zm = -10.5       --marble z position middle of coil a
 
+--Geometry
 l_coil = 15   --coil length
 l_sep = 6 --seperator length - distance between 2 coils
-ri = 8 --coil inner diameter
-ro = 12 --coil outer diameter
+ri = 8 --coil inner radius
+ro = 12 --coil outer radius
 Ncoil = 50 --number of turns per coil 
 
 rm = 12.7/2  --marble radius
@@ -20,9 +33,9 @@ am = 1 --Automesh on
 ms = 10 --Mesh size (optional, only if automesh off)
 
 file = openfile("output.csv", "w")
+istep = 0
 
-istep = 100
---for kz=-20,0,0.25 do
+for zm = zm_min,zm_max,zm_step do
 
 newdocument(0)
 mi_probdef(0,"millimeters","axi",1e-008)
@@ -102,7 +115,9 @@ mi_saveas("aircoil.fem")
 
 --mi_zoomnatural()
 
-for Icoil_a=0,30,1 do 
+for Icoil_a = Icoil_a_min,Icoil_a_max,Icoil_a_step do 
+for Icoil_b = Icoil_b_min,Icoil_b_max,Icoil_b_step do 
+
 	mi_addcircprop('circuit_a', Icoil_a, 1) --Stromkreis: I A, in Serie
 	mi_addcircprop('circuit_b', Icoil_b, 1) --Stromkreis: I A, in Serie
 	
@@ -125,7 +140,7 @@ for Icoil_a=0,30,1 do
 	mo_clearblock()
 
 	str = Icoil_a .. ", " .. Icoil_b .. ", ".. zm .. ", " .. Fr .. ", " .. Fz .. ", " .. Eco .. ", " .. Emag
-	--print(str)
+	print(str)
 	write(file,str.."\n")
 
 	--mo_showdensityplot(1,0,1.0,0.0,"bmag")
@@ -133,12 +148,13 @@ for Icoil_a=0,30,1 do
 	--mo_zoom(0,-40,50,40)
 	--mo_savebitmap("outfile".. istep .. ".bmp")
 	istep = istep + 1;
-end
+end --Icoil_b
+end --Icoil_a
 
 
---mi_close()  --close preprocessor
---mo_close() --close postprocessor
+mi_close()  --close preprocessor
+mo_close() --close postprocessor
 
---end
+end --zm
 
 closefile(file)
