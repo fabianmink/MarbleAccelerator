@@ -28,6 +28,7 @@ z_fit  = -40:1:30;
 
 Eco_FIT = (c*Ia_FIT.^2) .* (1+d*exp(-(((z_FIT+g)/e).^2)));
 
+%Multiplication *1000 is due to z in unit "mm" instead of "m"
 F_FIT = 1000* (c*Ia_FIT.^2) .* (d*exp(-(((z_FIT+g)/e).^2)) ) .* (-2*(z_FIT+g)/e) * 1/e ;
 
 Psi_FIT = 2*c*Ia_FIT .* (1+d*exp(-(((z_FIT+g)/e).^2)));
@@ -38,6 +39,7 @@ scatter3(Ia, z, Eco);
 hold on;
 surf(Ia_FIT, z_FIT, Eco_FIT);
 hold off;
+zlabel('E_{co}/J')
 end
 
 if(plottype == 1)
@@ -45,13 +47,19 @@ scatter3(Ia, z, F);
 hold on;
 surf(Ia_FIT, z_FIT, F_FIT);
 hold off;
+zlabel('F_{z}/N')
 end
 
 if(plottype == 2)
 surf(Ia_FIT, z_FIT, Psi_FIT);
+zlabel('\Psi_a/Vs')
 end
 
 if(plottype == 3)
 surf(Ia_FIT, z_FIT, L_FIT);
+zlabel('L_a/H')
 end
+
+xlabel('I/A')
+ylabel('z/mm')
 
