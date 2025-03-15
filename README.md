@@ -9,3 +9,8 @@ Coilgun setup:
 FEM Simulation (FEMM):
 
 ![FEM Simulation](img/FEMM_example.png)
+
+
+Fitting of simulated force (Matlab):
+
+![FEM Simulation](img/force_fitting.png)
