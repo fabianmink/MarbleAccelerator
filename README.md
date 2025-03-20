@@ -13,4 +13,8 @@ FEM Simulation (FEMM):
 
 Fitting of simulated force (Matlab):
 
-![FEM Simulation](img/force_fitting.png)
+![Force Fit](img/force_fitting.png)
+
+Dynamic System Simulation Model (Simulink):
+
+![System Simulation](img/simulink_model.png)
