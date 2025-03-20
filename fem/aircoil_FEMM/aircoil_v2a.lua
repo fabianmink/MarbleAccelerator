@@ -1,9 +1,9 @@
 --this simulation is for 3D-printed coil carrier, v2a
 
 --coil a current
-Icoil_a_min = -20 
-Icoil_a_max = 20
-Icoil_a_step = 10 --must not be zero, even if min and max are identical; otherwise infinite loop
+Icoil_a_min = -10 
+Icoil_a_max = 10
+Icoil_a_step = 2.5 --must not be zero, even if min and max are identical; otherwise infinite loop
 
 --coil b current 
 Icoil_b_min = 0 
@@ -17,12 +17,12 @@ zm_step = 1 --must not be zero, even if min and max are identical; otherwise inf
 --zm = -50       --marble z position totally out of coils
 --zm = -10.5       --marble z position middle of coil a
 
---Geometry
+--Geometry (for 0.5mm Wire diameter)
 l_coil = 15   --coil length
 l_sep = 6 --seperator length - distance between 2 coils
 ri = 8 --coil inner radius
-ro = 12 --coil outer radius
-Ncoil = 50 --number of turns per coil 
+ro = 14 --coil outer radius
+Ncoil = 298 --number of turns per coil 
 
 rm = 12.7/2  --marble radius
 

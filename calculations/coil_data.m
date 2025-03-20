@@ -1,13 +1,13 @@
 l_coil = 15e-3;  %m Coil length
 r_i = 8e-3;      %m Coil inner radius
-r_o = 13.5e-3;     %m Coil outer radius
+r_o = 14e-3;     %m Coil outer radius
 A_coil = l_coil * (r_o-r_i);  %m^2 coil cross section (1 side)
 d_wire = [0.75e-3 0.5e-3];    %m Wire diameter
 
 r_wire = d_wire/2;    %wire radius
 A_wire = pi*r_wire.^2; %wire cross section
 
-cu_fill = 0.85; %Copper filling factor
+cu_fill = 0.65; %Copper filling factor
 
 N = A_coil*cu_fill./A_wire;  %Number of turns
 
@@ -28,7 +28,7 @@ r_avg = (r_o + r_i)/2;
 L_wheeler = 31.6e-6 * N.^2 * r_i^2 / (6*r_i + 9*l_coil + 10*(r_o-r_i));
 l_wire = 2*pi*r_avg*N;
 
-rhoCu = 0.0171; %Ohm*mm^2/l
+rhoCu = 0.019; %Ohm*mm^2/l
 R = rhoCu * l_wire ./ (A_wire*10^6);  %Ohm coil Resistance
 
 L = L_wheeler;

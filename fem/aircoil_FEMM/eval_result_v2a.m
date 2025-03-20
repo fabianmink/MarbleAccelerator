@@ -13,16 +13,24 @@ Emag = M(:,7);
 %F_from_Eco = [0; diff(Eco)./ (diff(z))]; 
 
 % good fit (Matlab curveFitter):
-%(c*x^2)*(1+d*exp(-(((y+g)/e)^2)))
-%(c*Ia^2)*(1+d*exp(-(((z+g)/e)^2)))
+%(0.5*a*x^2 )*(1+b*exp(-(((y-c)/d)^2)))
 
-L = 3.3260e-05;   %Inductance (for marble out of coil)
-d =      0.4934;  %Relative increase of inductance (for marble in middle of coil)
-z_s =   9.27e-3;  %m 
+%(0.5*L*Ia^2)*(1+d*exp(-(((z-z0)/z_s)^2)))
+
+%1mm diameter
+%L = 3.3260e-05;   %Inductance (for marble out of coil)
+%d =      0.4934;  %Relative increase of inductance (for marble in middle of coil)
+%z_s =   9.27e-3;  %m 
+%z0 =  -10.51e-3;  %m
+
+%0.5mm diameter
+L =    1.29e-3;   %Inductance (for marble out of coil)
+d =      0.396;   %Relative increase of inductance (for marble in middle of coil)
+z_s =   9.60e-3;  %m 
 z0 =  -10.51e-3;  %m
 
-Ia_fit = -20:1:20;
-%Ia_fit = [20 20];
+Ia_fit = -10:0.5:10;
+%Ia_fit = [2 2.5];
 z_fit  = (-40:1:30)*1e-3;
 [Ia_FIT,z_FIT] = meshgrid(Ia_fit, z_fit);
 
