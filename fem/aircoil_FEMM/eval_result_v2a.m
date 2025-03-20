@@ -15,18 +15,18 @@ Emag = M(:,7);
 % good fit (Matlab curveFitter):
 %(0.5*a*x^2 )*(1+b*exp(-(((y-c)/d)^2)))
 
-%(0.5*L*Ia^2)*(1+d*exp(-(((z-z0)/z_s)^2)))
+%(0.5*Lmin*Ia^2)*(1+d*exp(-(((z-z0)/z_s)^2)))
 
 %1mm diameter
-%L = 3.3260e-05;   %Inductance (for marble out of coil)
-%d =      0.4934;  %Relative increase of inductance (for marble in middle of coil)
-%z_s =   9.27e-3;  %m 
-%z0 =  -10.51e-3;  %m
+%Lmin = 3.3260e-05;  %Inductance (for marble out of coil)
+%d =        0.4934;  %Relative increase of inductance (for marble in middle of coil)
+%zs =      9.27e-3;  %m 
+%z0 =    -10.51e-3;  %m
 
 %0.5mm diameter
-L =    1.29e-3;   %Inductance (for marble out of coil)
-d =      0.396;   %Relative increase of inductance (for marble in middle of coil)
-z_s =   9.60e-3;  %m 
+Lmin =  1.29e-3;  %Inductance (for marble out of coil)
+d =       0.396;  %Relative increase of inductance (for marble in middle of coil)
+zs =    9.60e-3;  %m 
 z0 =  -10.51e-3;  %m
 
 Ia_fit = -10:0.5:10;
@@ -35,17 +35,17 @@ z_fit  = (-40:1:30)*1e-3;
 [Ia_FIT,z_FIT] = meshgrid(Ia_fit, z_fit);
 
 %Coenergy
-Eco_FIT = (0.5*L*Ia_FIT.^2) .* (1+d*exp(-(((z_FIT-z0)/z_s).^2)));
+Eco_FIT = (0.5*Lmin*Ia_FIT.^2) .* (1+d*exp(-(((z_FIT-z0)/zs).^2)));
 
 %Force
-F_FIT =   (0.5*L*Ia_FIT.^2) .* (d*exp(-(((z_FIT-z0)/z_s).^2))) .* (-2*(z_FIT-z0)/z_s) * 1/z_s ;
+F_FIT =   (0.5*Lmin*Ia_FIT.^2) .* (d*exp(-(((z_FIT-z0)/zs).^2))) .* (-2*(z_FIT-z0)/zs) * 1/zs ;
 
 %Flux linkage and inductance
-Psi_FIT = L*Ia_FIT .* (1+d*exp(-(((z_FIT-z0)/z_s).^2)));
-L_FIT =          L .* (1+d*exp(-(((z_FIT-z0)/z_s).^2)));
+Psi_FIT = Lmin*Ia_FIT .* (1+d*exp(-(((z_FIT-z0)/zs).^2)));
+L_FIT =          Lmin .* (1+d*exp(-(((z_FIT-z0)/zs).^2)));
 
 %dPsi / dz
-dPsi_dz_FIT = L*Ia_FIT .* (1+d*exp(-(((z_FIT-z0)/z_s).^2))) .* (-2*(z_FIT-z0)/z_s) * 1/z_s;
+dPsi_dz_FIT = Lmin*Ia_FIT .* (d*exp(-(((z_FIT-z0)/zs).^2))) .* (-2*(z_FIT-z0)/zs) * 1/zs;
 
 if(plottype == 0)
 scatter3(Ia, z*1000, Eco);
@@ -76,7 +76,7 @@ end
 
 if(plottype == 4)
 surf(Ia_FIT, z_FIT*1000, dPsi_dz_FIT);
-zlabel('d\Psi / dz  Vs/m')
+zlabel('d\Psi / dz  V/(m/s)')
 end
 
 xlabel('I/A')
