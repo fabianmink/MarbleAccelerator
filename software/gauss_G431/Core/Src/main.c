@@ -300,7 +300,7 @@ void SystemClock_Config(void)
   {
   }
 
-  /* Insure 1µs transition state at intermediate medium speed clock based on DWT */
+  /* Insure 1ï¿½s transition state at intermediate medium speed clock based on DWT */
   CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
   DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
   DWT->CYCCNT = 0;
@@ -1049,7 +1049,8 @@ typedef enum {
 
 typedef enum {
 	sens_cmd_none = 0,
-	sens_cmd_reset = 1
+	sens_cmd_start = 1,
+	sens_cmd_reset = 2
 }
 sens_cmd_t;
 
@@ -1068,9 +1069,10 @@ static sens_data_t mysens = {
 		.spd = 0,
 		.pos = 0,
 		.trigpos = 6000000,
-		.level = 3500,
+		.level = 3000,
 		.hyst = 100,
-		.state = sens_state_wft
+		.state = sens_state_wft,
+		.cmd = sens_cmd_none
 };
 
 
@@ -1255,12 +1257,12 @@ void control_sm(void){
 
 			mysens.trigpos = 3000000;
 			myctrl.cnt_starta = 0;
-			myctrl.cnt_stopa = 200;
-			myctrl.iaval = 3000; //ca. 10A
+			myctrl.cnt_stopa = 430;
+			myctrl.iaval = 2500; //3000 = 10A
 
-			myctrl.cnt_startb = 200;
-			myctrl.cnt_stopb = 800;
-			myctrl.ibval = 4200;
+			myctrl.cnt_startb = 0;
+			myctrl.cnt_stopb = 32000;
+			myctrl.ibval = 0;
 			//myctrl.ibval = 0;
 		}
 	}
@@ -1315,35 +1317,28 @@ void control_sm(void){
 
 void sens_eval(void){
 	if( mysens.state == sens_state_wft){
-		mysens.cmd = sens_cmd_none;
-		mysens.cnt = 0;
-		if(myctrl.poti < mysens.level-mysens.hyst){
+		if(myctrl.poti < mysens.level){
+			mysens.cmd = sens_cmd_none;
+			mysens.cnt = 0;
 			mysens.state = sens_state_run;
 		}
 	}
 	else if( mysens.state == sens_state_run){
 		mysens.cnt++;
-		if(myctrl.poti > mysens.level+mysens.hyst){
-			mysens.spd = 1600000/mysens.cnt;
-			mysens.pos = 0;
+		if(myctrl.poti > mysens.level) {
 			mysens.cnt = 0;
-			mysens.state = sens_state_fly;
-		}
-	}
-	else if( mysens.state == sens_state_fly){
-		mysens.cnt++;
-		mysens.pos += mysens.spd;
-		if(mysens.cnt > 16000){
 			mysens.state = sens_state_wft;
 		}
-		if(mysens.pos > mysens.trigpos){
+		else if(mysens.cnt == 32000){
 			mysens.cnt = 0;
+			mysens.cmd = sens_cmd_none;
 			mysens.state = sens_state_rdy;
 		}
 	}
 	else if( mysens.state == sens_state_rdy){
 		mysens.cnt++;
 		if(mysens.cmd == sens_cmd_reset){
+			mysens.cmd = sens_cmd_none;
 			mysens.state = sens_state_wft;
 		}
 	}
@@ -1459,14 +1454,15 @@ void main_pwm_ctrl(void){
 
 	if( ctrl_sm_state == ctrl_sm_state_ccon ){
 		//Current Controllers
-		pi_a.max = myctrl.vbus/2;
-		pi_a.min = -myctrl.vbus/2;
-		pi_b.max = myctrl.vbus/2;
-		pi_b.min = -myctrl.vbus/2;
+		pi_a.max = myctrl.vbus;
+		pi_a.min = -myctrl.vbus;
+		pi_b.max = myctrl.vbus;
+		pi_b.min = -myctrl.vbus;
 
 		myctrl.ua = control_pictrl_i16(&pi_a,myctrl.iaref,myctrl.ia);
-		myctrl.ub = control_pictrl_i16(&pi_b,myctrl.ibref,myctrl.ib);
-		myctrl.uc = -(myctrl.ua/2 + myctrl.ub/2);
+		myctrl.ub = 0;
+		//myctrl.ub = control_pictrl_i16(&pi_b,myctrl.ibref,myctrl.ib);
+		myctrl.uc = -(myctrl.ua);
 	}
 
 
