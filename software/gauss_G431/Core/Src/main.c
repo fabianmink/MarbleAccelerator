@@ -1257,11 +1257,11 @@ void control_sm(void){
 
 			mysens.trigpos = 3000000;
 			myctrl.cnt_starta = 0;
-			myctrl.cnt_stopa = 430;
+			myctrl.cnt_stopa = 440;
 			myctrl.iaval = 2500; //3000 = 10A
 
 			myctrl.cnt_startb = 0;
-			myctrl.cnt_stopb = 32000;
+			myctrl.cnt_stopb = 8000;
 			myctrl.ibval = 0;
 			//myctrl.ibval = 0;
 		}
@@ -1329,7 +1329,7 @@ void sens_eval(void){
 			mysens.cnt = 0;
 			mysens.state = sens_state_wft;
 		}
-		else if(mysens.cnt == 32000){
+		else if(mysens.cnt == 16000){
 			mysens.cnt = 0;
 			mysens.cmd = sens_cmd_none;
 			mysens.state = sens_state_rdy;
