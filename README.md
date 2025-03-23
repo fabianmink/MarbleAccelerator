@@ -1,17 +1,17 @@
 # gravitrax_coilgun
 A Coilgun for GraviTrax Marble Run
 
-##Coilgun setup:
+## Coilgun setup:
 
 ![System Setup Image](img/coilgun.jpg)
 
 
-##FEM Simulation (FEMM):
+## FEM Simulation (FEMM):
 
 ![FEM Simulation](img/FEMM_example.png)
 
 
-##Fitting of FEM results (Matlab):
+## Fitting of FEM results (Matlab):
 
 The fit is based on the following coenergy fit:
 
@@ -23,6 +23,6 @@ $$ F_{z} = \frac{\partial E_{\mathrm{Co}}}{\partial z} = - L_\mathrm{min} \cdot 
 
 ![Force Fit](img/force_fitting.png)
 
-##Dynamic System Simulation Model (Simulink):
+## Dynamic System Simulation Model (Simulink):
 
 ![System Simulation](img/simulink_model.png)
