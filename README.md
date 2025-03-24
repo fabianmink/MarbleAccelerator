@@ -6,7 +6,15 @@ This project deals with the construction of various accelerators (coil guns) for
 ### Horizontal coil design with two coils
 ![Horizontal coil design](img/coilgun_horizontal.jpg)
 
+Horizontal CAD design (base and tube parts)
+
+![horizontal design base](img/horizontal_base.png) ![horizontal design tube](img/horizontal_tube.png)
+
 ### Vertical coil design (single coil)
+
+Horizontal CAD design (base part)
+
+![horizontal design base](img/vertical_base.png)
 
 ## FEM Simulation (FEMM)
 
@@ -41,7 +49,7 @@ The dynamic simulation implements the following equations:
 - z-Position: $\dot{z} = v$
 - Force calculation: $F_\mathrm{z} = F_\mathrm{z}\left(I, z\right)$ (see equation in chapter above)
 - Coil current: $\dot{I} = \frac{1}{L \left(I, z\right) } \cdot \left[ u - R \cdot I - u_\mathrm{ind} \right]$
-- Induced voltage: $u_\mathrm{ind} = \frac{\partial \Psi}{\partial z} \cdot v_\mathrm{z}$
+- Induced voltage: $u_\mathrm{ind} = \frac{\partial \Psi}{\partial z} \cdot v$
 
 
 ![System Simulation](img/simulink_model.png)
