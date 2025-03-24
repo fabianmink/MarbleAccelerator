@@ -37,11 +37,11 @@ i.e.:
 
 The dynamic simulation implements the following equations:
 
-- $\dot{v}_\mathrm{z} = \frac{1}{m} \cdot F_\mathrm{z}$
-- $\dot{z} = \dot{v}_\mathrm{z}$
-- $F_\mathrm{z} = F_\mathrm{z}\left(I, z\right)$ (see equation in chapter above)
-- $\dot{I} = \frac{1}{L \left(I, z\right) } \cdot \left[ u - R \cdot I - u_\mathrm{ind} \right]$
-- $u_\mathrm{ind} = \frac{\partial \Psi}{\partial z} \cdot v_\mathrm{z}$
+- Velocity (z-direction): $\dot{v}_\mathrm{z} = \frac{1}{m} \cdot F_\mathrm{z}$
+- z-Position: $\dot{z} = \dot{v}_\mathrm{z}$
+- Force calculation: $F_\mathrm{z} = F_\mathrm{z}\left(I, z\right)$ (see equation in chapter above)
+- Coil current: $\dot{I} = \frac{1}{L \left(I, z\right) } \cdot \left[ u - R \cdot I - u_\mathrm{ind} \right]$
+- Induced voltage: $u_\mathrm{ind} = \frac{\partial \Psi}{\partial z} \cdot v_\mathrm{z}$
 
 
 ![System Simulation](img/simulink_model.png)
