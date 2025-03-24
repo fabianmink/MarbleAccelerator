@@ -37,7 +37,7 @@ i.e.:
 
 - Flux derivative: $\frac{\partial \Psi}{\partial z} = \frac{\partial^2 E_{\mathrm{Co}}}{\partial I \partial z} = -2 \cdot L_\mathrm{min} \cdot I \cdot \left[ d \cdot \exp \left( - \frac{z - z_0}{z_\mathrm{s}} \right)^2 \right] \cdot \frac{z - z_0}{z^2_\mathrm{s}}$ (needed for induced voltage calculation)
 
-
+Resulting examplary fitted force:
 
 ![Force Fit](img/force_fitting.png)
 
@@ -51,5 +51,10 @@ The dynamic simulation implements the following equations:
 - Coil current: $\dot{I} = \frac{1}{L \left(I, z\right) } \cdot \left[ u - R \cdot I - u_\mathrm{ind} \right]$
 - Induced voltage: $u_\mathrm{ind} = \frac{\partial \Psi}{\partial z} \cdot v$
 
+Model:
 
 ![System Simulation](img/simulink_model.png)
+
+Coil electromagnetic subsystem:
+
+![Model of coil electromagnetic system](img/simulink_model_coil.png)
