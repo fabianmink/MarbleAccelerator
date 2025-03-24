@@ -465,7 +465,7 @@ void sens_eval(void){
 }
 
 //32kHz PWM
-//16kHz Aufruf (??)
+//16kHz call frequency, due to RepetitionCounter = 3
 void control_pwm_ctrl(void){
 	if(LL_GPIO_IsInputPinSet(BUTTON_GPIO_Port, BUTTON_Pin)){
 		button_pressed = 0;
