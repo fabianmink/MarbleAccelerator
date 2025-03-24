@@ -58,7 +58,7 @@ static int repCntChanged = 0;
 /* External variables --------------------------------------------------------*/
 extern FDCAN_HandleTypeDef hfdcan1;
 /* USER CODE BEGIN EV */
-extern void main_pwm_ctrl(void);
+extern void control_pwm_ctrl(void);
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -228,7 +228,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
 	if(   (TIM1->CR1) & TIM_CR1_DIR   ){
 		//upcounting, correct
 		//LL_GPIO_SetOutputPin(ENC_B_GPIO_Port, ENC_B_Pin); //Debugging
-		main_pwm_ctrl();
+		control_pwm_ctrl();
 	}
 	else {
 		if(repCntChanged == 0){
