@@ -55,6 +55,7 @@ static void MX_ADC2_Init(void);
 static void MX_FDCAN1_Init(void);
 /* USER CODE BEGIN PFP */
 extern void FDCAN_Config(void);
+extern void control_init(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -130,24 +131,11 @@ int main(void)
   LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2N);
   LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3);
   LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3N);
-  //LL_TIM_EnableAllOutputs(TIM1); //PWM on (done in control FSM)
 
   //Config / Enable CAN
   FDCAN_Config();
-  //HAL_FDCAN_Start(&hfdcan1); // done in FDCAN_Config
 
-  /* Set the data to be transmitted */
-  //TxData[0] = 0x12;
-  //TxData[1] = 0xAD;
-
-  /* Start the Transmission process */
-  //if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, TxData) != HAL_OK)
-  //{
-	  /* Transmission request Error */
-	  //Error_Handler();
-  //}
-
-  LL_TIM_EnableIT_UPDATE(TIM1); //PWM interrupt
+  control_init();
 
   /* USER CODE END 2 */
 

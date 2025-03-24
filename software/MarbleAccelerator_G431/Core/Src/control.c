@@ -33,8 +33,93 @@ static calib_data_t calib_data = {
 		.ic = {.offs = 0, .gain = -1900},
 		.i_autoOffs = true,
 		.vbus = {.offs = 47, .gain = 551},
-		.poti = {.offs = 0,  .gain = 256}
+		.poti = {.offs = 0,  .gain = 256},
+		.imax = 20 *256,   //20A
+		.umin = 8  *256,   //8V
+		.umax = 25 *256    //25V
 };
+
+
+void datarec_sm(void);
+//void can_init(void);
+//void can_sm(void);
+
+
+typedef enum {
+	ctrl_sm_state_startup = 0,
+	ctrl_sm_state_curroffs = 1,
+	ctrl_sm_state_ready = 3,
+	ctrl_sm_state_ccon = 4,
+	ctrl_sm_state_error = 8
+} ctrl_sm_states_t;
+
+
+typedef enum {
+	ctrl_errors_none = 0,
+	ctrl_errors_overcurrent = 1,
+	ctrl_errors_overvoltage = 2,
+	ctrl_errors_undervoltage = 3,
+	ctrl_errors_adc = 4,
+	ctrl_errors_other = 5
+} ctrl_errors_t;
+
+//Control data struct
+typedef struct{
+	int16_t ia;
+	int16_t ib;
+	int16_t ic;
+	int16_t ua;
+	int16_t ub;
+	int16_t uc;
+	int16_t vbus;
+	int16_t iaref;
+	int16_t iaval;
+	int16_t ibref;
+	int16_t ibval;
+	uint32_t cnt_starta;
+	uint32_t cnt_stopa;
+	uint32_t cnt_startb;
+	uint32_t cnt_stopb;
+	int16_t poti;
+	control_pictrl_i16_t pi_a;
+	control_pictrl_i16_t pi_b;
+	bool button_pressed;  //indicate a button press
+	bool trigger_in;      //indicate input (currently unused)
+	uint32_t ctrl_sm_cnt;
+	ctrl_sm_states_t state;
+	ctrl_errors_t error;
+	int32_t ia_offs_sum;
+	int32_t ib_offs_sum;
+	int32_t ic_offs_sum;
+} ctrl_data_t;
+
+static ctrl_data_t myctrl;
+
+typedef enum {
+	sens_state_wft = 0,
+	sens_state_run = 1, //inside sensor windows
+	sens_state_fly = 2, //behind sensor windows, "free flying"
+	sens_state_rdy = 3  //in coil
+} sensor_states_t;
+
+typedef enum {
+	sens_cmd_none = 0,
+	sens_cmd_reset = 1
+}
+sensor_cmd_t;
+
+typedef struct{
+	uint32_t cnt;
+	uint16_t spd;
+	uint32_t pos;
+	uint32_t trigpos;
+	uint16_t level;
+	uint16_t hyst;
+	sensor_states_t state;
+	sensor_cmd_t cmd;
+} sensor_data_t;
+
+static sensor_data_t mysensor;
 
 static void pwm_setrefint_3ph_tim1(int16_t ref[3]){
 	int i;
@@ -54,305 +139,206 @@ static void pwm_setrefint_3ph_tim1(int16_t ref[3]){
 	TIM1->CCR3 = refu[2];
 }
 
-
-
-void datarec_sm(void);
-//void can_init(void);
-//void can_sm(void);
-
-//Control data struct
-typedef struct{
-	int16_t ia;
-	int16_t ib;
-	int16_t ic;
-	int16_t ua;
-	int16_t ub;
-	int16_t uc;
-	int16_t vbus;
-	int16_t iaref;
-	int16_t iaval;
-	int16_t ibref;
-	int16_t ibval;
-	//uint32_t cnt_ccon;
-	//uint32_t cnt_period;
-	//uint32_t cnt_reTrig;
-	uint32_t cnt_starta;
-	uint32_t cnt_stopa;
-	uint32_t cnt_startb;
-	uint32_t cnt_stopb;
-	int16_t poti;
-} ctrl_data_t;
-static ctrl_data_t myctrl;
-
-static uint8_t imax = 20;
-static uint8_t umax = 25;
-static uint8_t umin = 8;
-static int32_t ia_offs_sum;
-static int32_t ib_offs_sum;
-static int32_t ic_offs_sum;
-
-
-typedef enum {
-	sens_state_wft = 0,
-	sens_state_run = 1, //inside sensor windows
-	sens_state_fly = 2, //behind sensor windows, "free flying"
-	sens_state_rdy = 3  //in coil
-} sens_states_t;
-
-typedef enum {
-	sens_cmd_none = 0,
-	sens_cmd_reset = 1
-}
-sens_cmd_t;
-
-typedef struct{
-	uint32_t cnt;
-	uint16_t spd;
-	uint32_t pos;
-	uint32_t trigpos;
-	uint16_t level;
-	uint16_t hyst;
-	sens_states_t state;
-	sens_cmd_t cmd;
-} sens_data_t;
-static sens_data_t mysens = {
-		.cnt = 0,
-		.spd = 0,
-		.pos = 0,
-		.trigpos = 6000000,
-		.level = 3500,
-		.hyst = 100,
-		.state = sens_state_wft
-};
-
-
-static bool button_pressed = 0;  //indicate a button press
-static bool trigger_in = 0;  //indicate trigger event
-
-//Data recorder (debugging)
-typedef enum {
-	datarec_state_startup = 0,
-	datarec_state_wft = 1,
-	datarec_state_rec = 2,
-	datarec_state_rdy = 3
-} datarec_states_t;
-
-
-#define BUFLEN 400 //Buffer length
-#define CYCLEDIV 4 //cycle div
-
-static struct{
-	int16_t ia_buf[BUFLEN];
-	int16_t ib_buf[BUFLEN];
-	int16_t ic_buf[BUFLEN];
-	int16_t ua_buf[BUFLEN];
-	int16_t vbus_buf[BUFLEN];
-} myDataRecData;
-
-static int i_elecnt = 0;
-static int dataRecTrig = 0;
-
-static datarec_states_t myDataRecState = datarec_state_startup;
-
-typedef enum {
-	ctrl_sm_state_startup = 0,
-	ctrl_sm_state_curroffs = 1,
-	ctrl_sm_state_ready = 3,
-	ctrl_sm_state_ccon = 4,
-	ctrl_sm_state_error = 8
-} ctrl_sm_states_t;
-
-//Current controllers
-static control_pictrl_i16_t pi_a = {
-		.i_val = 0,
-		.ki = 40,
-		.kp = 4,
-		.max = 0,  // will be adjusted according to current value of vbus
-		.min = 0   //--- " ---
-};
-
-static control_pictrl_i16_t pi_b = {
-		.i_val = 0,
-		.ki = 40,
-		.kp = 4,
-		.max = 0,   // will be adjusted according to current value of vbus
-		.min = 0    //--- " ---
-};
-
-
-static ctrl_sm_states_t ctrl_sm_state = ctrl_sm_state_startup;
-static int ctrl_sm_cnt = 0;
-static int ctrl_sm_edge_detect = 0;
-
 void control_sm_to_ready_mode(void){
 	//stop PWM
 	LL_TIM_DisableAllOutputs(TIM1); //PWM off
-	ctrl_sm_state = ctrl_sm_state_ready;
+	myctrl.ctrl_sm_cnt = 0;
+	myctrl.state = ctrl_sm_state_ready;
 	int16_t refs[3] = {0,0,0};
 	pwm_setrefint_3ph_tim1(refs);
-	ctrl_sm_edge_detect = 0;
-
 	//can_init();
 }
 
 void control_sm_to_error(void){
 	//stop PWM
 	LL_TIM_DisableAllOutputs(TIM1); //PWM off
-	ctrl_sm_cnt = 0;
-	ctrl_sm_state = ctrl_sm_state_error;
+	myctrl.ctrl_sm_cnt = 0;
+	myctrl.state = ctrl_sm_state_error;
 	int16_t refs[3] = {0,0,0};
 	pwm_setrefint_3ph_tim1(refs);
-	ctrl_sm_edge_detect = 0;
 }
 
 void control_sm_to_ccon_mode(void){
 	//Transfer to pos mode, do initialization
-	pi_a.i_val = 0;
-	pi_b.i_val = 0;
-	//pi_q.i_val = 0;
-	//myctrl.cnt_ccon = 0;
-	ctrl_sm_state = ctrl_sm_state_ccon;
+	myctrl.pi_a.i_val = 0;
+	myctrl.pi_b.i_val = 0;
+	myctrl.ctrl_sm_cnt = 0;
+	myctrl.state = ctrl_sm_state_ccon;
 	int16_t refs[3] = {0,0,0};
 	pwm_setrefint_3ph_tim1(refs);
 	LL_TIM_EnableAllOutputs(TIM1); //PWM on
-	ctrl_sm_edge_detect = 0;
 }
 
 void control_sm(void){
-
-	//master_data[master_data_pread] is always consistent, because WFB ISR can not interrupt control ISR
-
-	if(ctrl_sm_state == ctrl_sm_state_startup){
-		ctrl_sm_cnt++;
+	if(myctrl.state == ctrl_sm_state_startup){
+		myctrl.ctrl_sm_cnt++;
 		//delay 0.5s
-		if(ctrl_sm_cnt >= 8000){
-			ctrl_sm_cnt = 0;
-			ia_offs_sum = ib_offs_sum = ic_offs_sum = 0;
-			ctrl_sm_state = ctrl_sm_state_curroffs;
-
-			//myctrl.cnt_period = 160000; //10s
-			//myctrl.cnt_reTrig = 1600;
-
-			mysens.trigpos = 3000000;
-			myctrl.cnt_starta = 0;
-			myctrl.cnt_stopa = 200;
-			myctrl.iaval = 3000; //ca. 10A
-
-			myctrl.cnt_startb = 200;
-			myctrl.cnt_stopb = 800;
-			myctrl.ibval = 4200;
-			//myctrl.ibval = 0;
+		if(myctrl.ctrl_sm_cnt >= 8000){
+			myctrl.ctrl_sm_cnt = 0;
+			myctrl.ia_offs_sum = myctrl.ib_offs_sum = myctrl.ic_offs_sum = 0;
+			myctrl.state = ctrl_sm_state_curroffs;
 		}
 	}
-	else if(ctrl_sm_state == ctrl_sm_state_ready){
-		ctrl_sm_cnt++;
-		//if(button_pressed){
-		if(ctrl_sm_cnt >= 8000){  //with autostart after 0.5s
+	else if(myctrl.state == ctrl_sm_state_ready){
+		myctrl.ctrl_sm_cnt++;
+		//if(myctrl.ctrl_sm_cnt >= 8000){  //with autostart after 0.5s
+		if(myctrl.ctrl_sm_cnt >= 64000){  //with autostart after 4s
+			//if(button_pressed){
 			control_sm_to_ccon_mode();
-		}
-		else{
-			ctrl_sm_edge_detect = 1;
+			//}
 		}
 	}
-	else if(ctrl_sm_state == ctrl_sm_state_error){
-		ctrl_sm_cnt++;
-		if(ctrl_sm_cnt >= 80000){  //with autostart after 5s
-			control_sm_to_ready_mode();
-		}
-		else{
-			ctrl_sm_edge_detect = 1;
-		}
-	}
-	else if(ctrl_sm_state == ctrl_sm_state_curroffs){
-		ctrl_sm_cnt++;
-		//wait 0.5s for offset determination
-		if((!calib_data.i_autoOffs) || (ctrl_sm_cnt >= 8000)){
-			control_sm_to_ready_mode();
-			if (calib_data.i_autoOffs){
-				calib_data.ia.offs = ia_offs_sum / 8000;
-				calib_data.ib.offs = ib_offs_sum / 8000;
-				calib_data.ic.offs = ic_offs_sum / 8000;
+	else if(myctrl.state == ctrl_sm_state_error){
+		//Reset via button possible after at least 1s
+		if(myctrl.ctrl_sm_cnt < 16000){
+			//If button is pressed before 1s elapsed, ignore it and restart counting
+			if(myctrl.button_pressed){
+				myctrl.ctrl_sm_cnt = 0;
 			}
-			//Optionally, do not do this automatically, but only after command from master
-			ctrl_sm_cnt = 0;
-			control_sm_to_ready_mode();
+			else {
+				myctrl.ctrl_sm_cnt++;
+			}
 		}
-
-	}
-	else if(ctrl_sm_state == ctrl_sm_state_ccon){
-		ctrl_sm_cnt = 0;
-		if(button_pressed){
-			if(ctrl_sm_edge_detect){
+		else {
+			//Error reset when button pressed
+			if(myctrl.button_pressed){
+				myctrl.ctrl_sm_cnt = 0;
 				control_sm_to_ready_mode();
 			}
 		}
-		else{
-			ctrl_sm_edge_detect = 1;
+	}
+	else if(myctrl.state == ctrl_sm_state_curroffs){
+		//wait 0.5s for offset determination
+		if(myctrl.ctrl_sm_cnt < 8000){
+			myctrl.ctrl_sm_cnt++;
+		}
+		else {
+			if (calib_data.i_autoOffs){
+				calib_data.ia.offs = myctrl.ia_offs_sum / 8000;
+				calib_data.ib.offs = myctrl.ib_offs_sum / 8000;
+				calib_data.ic.offs = myctrl.ic_offs_sum / 8000;
+			}
+			myctrl.ctrl_sm_cnt = 0;
+			control_sm_to_ready_mode();
+		}
+	}
+	else if(myctrl.state == ctrl_sm_state_ccon){
+		//Switch off via button possible after at least 0.5s
+		if(myctrl.ctrl_sm_cnt < 8000){
+			myctrl.ctrl_sm_cnt++;
+		}
+		else {
+			if(myctrl.button_pressed){
+				control_sm_to_ready_mode();
+			}
 		}
 	}
 
 }
 
 void sens_eval(void){
-	if( mysens.state == sens_state_wft){
-		mysens.cmd = sens_cmd_none;
-		mysens.cnt = 0;
-		if(myctrl.poti < mysens.level-mysens.hyst){
-			mysens.state = sens_state_run;
+	if( mysensor.state == sens_state_wft){
+		mysensor.cmd = sens_cmd_none;
+		mysensor.cnt = 0;
+		if(myctrl.poti < mysensor.level-mysensor.hyst){
+			mysensor.state = sens_state_run;
 		}
 	}
-	else if( mysens.state == sens_state_run){
-		mysens.cnt++;
-		if(myctrl.poti > mysens.level+mysens.hyst){
-			mysens.spd = 1600000/mysens.cnt;
-			mysens.pos = 0;
-			mysens.cnt = 0;
-			mysens.state = sens_state_fly;
+	else if( mysensor.state == sens_state_run){
+		mysensor.cnt++;
+		if(myctrl.poti > mysensor.level+mysensor.hyst){
+			mysensor.spd = 1600000/mysensor.cnt;
+			mysensor.pos = 0;
+			mysensor.cnt = 0;
+			mysensor.state = sens_state_fly;
 		}
 	}
-	else if( mysens.state == sens_state_fly){
-		mysens.cnt++;
-		mysens.pos += mysens.spd;
-		if(mysens.cnt > 16000){
-			mysens.state = sens_state_wft;
+	else if( mysensor.state == sens_state_fly){
+		mysensor.cnt++;
+		mysensor.pos += mysensor.spd;
+		if(mysensor.cnt > 16000){
+			mysensor.state = sens_state_wft;
 		}
-		if(mysens.pos > mysens.trigpos){
-			mysens.cnt = 0;
-			mysens.state = sens_state_rdy;
+		if(mysensor.pos > mysensor.trigpos){
+			mysensor.cnt = 0;
+			mysensor.state = sens_state_rdy;
 		}
 	}
-	else if( mysens.state == sens_state_rdy){
-		mysens.cnt++;
-		if(mysens.cmd == sens_cmd_reset){
-			mysens.state = sens_state_wft;
+	else if( mysensor.state == sens_state_rdy){
+		mysensor.cnt++;
+		if(mysensor.cmd == sens_cmd_reset){
+			mysensor.state = sens_state_wft;
 		}
 	}
 
 }
 
+
+void control_init(void){
+	myctrl.cnt_starta = 0;
+	myctrl.cnt_stopa = 200;
+	myctrl.iaval = 3000; //ca. 10A
+
+	myctrl.cnt_startb = 200;
+	myctrl.cnt_stopb = 800;
+	myctrl.ibval = 4200;
+	//myctrl.ibval = 0;
+
+	//Current controllers
+	myctrl.pi_a.kp = 4;
+	myctrl.pi_a.ki = 40;
+
+	myctrl.pi_b.kp = 4;
+	myctrl.pi_b.ki = 40;
+
+	myctrl.state = ctrl_sm_state_startup;
+	myctrl.ctrl_sm_cnt = 0;
+
+	myctrl.error = ctrl_errors_none;
+
+	mysensor.cnt = 0;
+	mysensor.spd = 0;
+	mysensor.pos = 0;
+	mysensor.trigpos = 3000000;
+	mysensor.level = 3500;
+	mysensor.hyst = 100;
+	mysensor.state = sens_state_wft;
+
+	LL_TIM_EnableIT_UPDATE(TIM1); //PWM interrupt
+}
+
 //32kHz PWM
 //16kHz call frequency, due to RepetitionCounter = 3
 void control_pwm_ctrl(void){
+	//Check for button press
 	if(LL_GPIO_IsInputPinSet(BUTTON_GPIO_Port, BUTTON_Pin)){
-		button_pressed = 0;
+		myctrl.button_pressed = 0;
 	} else{
-		button_pressed = 1;
+		myctrl.button_pressed = 1;
 	}
+	//Pull down pin in order to indicate function begin (can be measured by oscilloscope)
 	LL_GPIO_SetPinPull(BUTTON_GPIO_Port, BUTTON_Pin, LL_GPIO_PULL_DOWN);
 
 	if(LL_GPIO_IsInputPinSet(ENC_A_GPIO_Port, ENC_A_Pin)){
-		trigger_in = 0;
+		myctrl.trigger_in = 0;
 	} else{
-		trigger_in = 1;
+		myctrl.trigger_in = 1;
 	}
-
 
 	control_sm();
 
 	// *** CURRENT MEASUREMENT and transformation ***
+	int retry = 0;
 	while(!LL_ADC_IsActiveFlag_JEOS(ADC1)){
+		retry++;
 		//Error after certain time, if adc will not get ready -> signal error!
 		//should not happen, because due to encoder read and conversion, a lot of time has passed
+		if(retry >= 10){
+			if (myctrl.state != ctrl_sm_state_startup){
+				myctrl.error = ctrl_errors_adc;
+				control_sm_to_error();
+			}
+		}
 	}
 
 	//Currents are in int16, Q7.8
@@ -362,6 +348,7 @@ void control_pwm_ctrl(void){
 	//1024 = 9.0V,  1143 = 10.0V, 1262 = 11.0V
 	int16_t vbusraw = (int16_t) LL_ADC_INJ_ReadConversionData12(ADC1, LL_ADC_INJ_RANK_2);
 	myctrl.vbus = interp_linearTrsfm_i16(&calib_data.vbus, vbusraw);
+	//vbus value limitation
 	if( myctrl.vbus < (5<<8) ) {
 		myctrl.vbus = (5<<8);
 	}
@@ -379,73 +366,66 @@ void control_pwm_ctrl(void){
 	int16_t ic_raw = (int16_t) LL_ADC_INJ_ReadConversionData12(ADC2, LL_ADC_INJ_RANK_2);
 	myctrl.ic = interp_linearTrsfm_i16(&calib_data.ic, ic_raw);
 
-	if(ctrl_sm_state >= ctrl_sm_state_ready){
+	if(myctrl.state == ctrl_sm_state_ccon){
 		//signal over- / undervoltage and overcurrent
-		if(     (myctrl.ia > ((int16_t)imax)*256)  ||    (myctrl.ia < ((int16_t)imax)*-256)       ){
+		if(  (myctrl.ia > calib_data.imax)  ||  (myctrl.ia < -calib_data.imax)   )  {
+			myctrl.error = ctrl_errors_overcurrent;
 			control_sm_to_error();
 		}
-		if(     (myctrl.ib > ((int16_t)imax)*256)  ||    (myctrl.ib < ((int16_t)imax)*-256)       ){
+		if(  (myctrl.ib > calib_data.imax)  ||  (myctrl.ib < -calib_data.imax)   )  {
+			myctrl.error = ctrl_errors_overcurrent;
 			control_sm_to_error();
 		}
-		if(     (myctrl.ib > ((int16_t)imax)*256)  ||    (myctrl.ib < ((int16_t)imax)*-256)       ){
+		if(  (myctrl.ic > calib_data.imax)  ||  (myctrl.ic < -calib_data.imax)   )  {
+			myctrl.error = ctrl_errors_overcurrent;
 			control_sm_to_error();
 		}
-		if(     (myctrl.vbus > ((int16_t)umax)*256)  ||    (myctrl.vbus < ((int16_t)umin)*256)       ){
+		if(  (myctrl.vbus > calib_data.umax) ) {
+			myctrl.error = ctrl_errors_overvoltage;
+			control_sm_to_error();
+		}
+		if(  (myctrl.vbus < calib_data.umin) ) {
+			myctrl.error = ctrl_errors_undervoltage;
 			control_sm_to_error();
 		}
 	}
 
 	sens_eval();
 
-	if (ctrl_sm_state == ctrl_sm_state_curroffs) {
-		ia_offs_sum -= ia_raw;
-		ib_offs_sum -= ib_raw;
-		ic_offs_sum -= ic_raw;
+	if (myctrl.state == ctrl_sm_state_curroffs) {
+		myctrl.ia_offs_sum -= ia_raw;
+		myctrl.ib_offs_sum -= ib_raw;
+		myctrl.ic_offs_sum -= ic_raw;
 	}
 
 
 	// *** CONTROLLERS: Position / Current ***
-	if(ctrl_sm_state == ctrl_sm_state_ccon){
-//		myctrl.cnt_ccon++;
-//		if( myctrl.cnt_ccon >= myctrl.cnt_period ){
-//			myctrl.cnt_ccon=0;
-//			dataRecTrig = 1;
-//		}
-//		else if( (myctrl.cnt_ccon >= myctrl.cnt_reTrig) &&  trigger_in){
-//			myctrl.cnt_ccon=0;
-//			dataRecTrig = 1;
-//		}
-
-
+	if(myctrl.state == ctrl_sm_state_ccon){
 		myctrl.iaref = 256*0; //0A
 		myctrl.ibref = 256*0; //0A
 
-
-		if(mysens.state == sens_state_rdy){
-			if(   (mysens.cnt > myctrl.cnt_starta) && (mysens.cnt < myctrl.cnt_stopa)){
+		if(mysensor.state == sens_state_rdy){
+			if(   (mysensor.cnt > myctrl.cnt_starta) && (mysensor.cnt < myctrl.cnt_stopa)){
 				myctrl.iaref = myctrl.iaval; //for testing
 			}
-			if(   (mysens.cnt > myctrl.cnt_startb) && (mysens.cnt < myctrl.cnt_stopb)){
+			if(   (mysensor.cnt > myctrl.cnt_startb) && (mysensor.cnt < myctrl.cnt_stopb)){
 				myctrl.ibref = myctrl.ibval; //for testing
 			}
-			if(mysens.cnt > myctrl.cnt_stopb){
-				mysens.cmd = sens_cmd_reset;
+			if(mysensor.cnt > myctrl.cnt_stopb){
+				mysensor.cmd = sens_cmd_reset;
 			}
 		}
-
-
-
 	}
 
-	if( ctrl_sm_state == ctrl_sm_state_ccon ){
+	if( myctrl.state == ctrl_sm_state_ccon ){
 		//Current Controllers
-		pi_a.max = myctrl.vbus/2;
-		pi_a.min = -myctrl.vbus/2;
-		pi_b.max = myctrl.vbus/2;
-		pi_b.min = -myctrl.vbus/2;
+		myctrl.pi_a.max = myctrl.vbus/2;
+		myctrl.pi_a.min = -myctrl.vbus/2;
+		myctrl.pi_b.max = myctrl.vbus/2;
+		myctrl.pi_b.min = -myctrl.vbus/2;
 
-		myctrl.ua = control_pictrl_i16(&pi_a,myctrl.iaref,myctrl.ia);
-		myctrl.ub = control_pictrl_i16(&pi_b,myctrl.ibref,myctrl.ib);
+		myctrl.ua = control_pictrl_i16(&myctrl.pi_a,myctrl.iaref,myctrl.ia);
+		myctrl.ub = control_pictrl_i16(&myctrl.pi_b,myctrl.ibref,myctrl.ib);
 		myctrl.uc = -(myctrl.ua/2 + myctrl.ub/2);
 	}
 
@@ -466,7 +446,7 @@ void control_pwm_ctrl(void){
 	if(tmpref < -32768) tmpref = -32768;
 	refs[2] = tmpref;
 
-	if(ctrl_sm_state == ctrl_sm_state_ready){
+	if(myctrl.state == ctrl_sm_state_ready){
 		refs[0] = 0;
 		refs[1] = 0;
 		refs[2] = 0;
@@ -478,14 +458,36 @@ void control_pwm_ctrl(void){
 	datarec_sm();
 	//can_sm();
 
+	//Disable pull down in order to indicate function end
 	LL_GPIO_SetPinPull(BUTTON_GPIO_Port, BUTTON_Pin, LL_GPIO_PULL_NO);
 }
 
 
-
-
-
 // **** Code related to Data Recording ****
+#define BUFLEN 400 //Buffer length
+#define CYCLEDIV 4 //cycle div
+
+typedef enum {
+	datarec_state_startup = 0,
+	datarec_state_wft = 1,
+	datarec_state_rec = 2,
+	datarec_state_rdy = 3
+} datarec_states_t;
+
+
+static struct{
+	int16_t ia_buf[BUFLEN];
+	int16_t ib_buf[BUFLEN];
+	int16_t ic_buf[BUFLEN];
+	int16_t ua_buf[BUFLEN];
+	int16_t vbus_buf[BUFLEN];
+} myDataRecData;
+
+
+static int i_elecnt = 0;
+static int dataRecTrig = 0;
+static datarec_states_t myDataRecState = datarec_state_startup;
+
 void datarec_sm(void){
 	if(myDataRecState == datarec_state_startup){
 		myDataRecState = datarec_state_wft;
