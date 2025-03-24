@@ -23,17 +23,10 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-//#include <math.h>
-//#include <string.h>
-
 #include "control.h"
-
 #define PWM_MAX 2500
 
-
-
-//Power stage XXX
+//Power stage
 static calib_data_t calib_data = {
 		.ia = {.offs = 0, .gain = -1900},
 		.ib = {.offs = 0, .gain = -1900},
@@ -42,12 +35,6 @@ static calib_data_t calib_data = {
 		.vbus = {.offs = 47, .gain = 551},
 		.poti = {.offs = 0,  .gain = 256}
 };
-
-static FDCAN_RxHeaderTypeDef RxHeader;
-static uint8_t RxData[8];
-static FDCAN_TxHeaderTypeDef TxHeader;
-static uint8_t TxData[8];
-
 
 static void pwm_setrefint_3ph_tim1(int16_t ref[3]){
 	int i;
@@ -68,59 +55,10 @@ static void pwm_setrefint_3ph_tim1(int16_t ref[3]){
 }
 
 
-typedef struct
-{
-	int16_t kp;       //  P-Gain Q13.2
-	int16_t ki;       //  I-Gain Q7.8
-	int16_t min;      //  lower output limit
-	int16_t max;      //  upper output limit
-	int32_t i_val;    //  current integral value
-} control_pictrl_i16_t;
 
-
-int16_t control_pictrl_i16(control_pictrl_i16_t* controller, int16_t ref, int16_t act){
-
-	int32_t ctrldiff;
-	int32_t p_val, i_val;
-	int32_t tmp_out;
-	//int16_t out;
-
-	ctrldiff = ((int32_t)ref - (int32_t)act);
-	p_val = (((int32_t)controller->kp) * ctrldiff) >> 2;
-	if(controller->ki){
-		i_val = ((((int32_t)controller->ki) * ctrldiff)>>8) + controller->i_val;
-	}
-	else {
-		i_val = 0.0f;
-	}
-
-	tmp_out = (p_val + i_val);
-
-	if(tmp_out > controller->max){
-		tmp_out = controller->max;
-		if(i_val > controller->i_val) i_val = controller->i_val;
-		//i_val = controller->max - p_val;
-	}
-	if(tmp_out < controller->min){
-		tmp_out = controller->min;
-		if(i_val < controller->i_val) i_val = controller->i_val;
-		//i_val = controller->min - p_val;
-	}
-
-	controller->i_val = i_val;
-	return((int16_t)tmp_out);
-}
-
-
-//Linear scale / offset:  out = gain*(in + offs)
-int16_t interp_linearTrsfm_i16(interp_lin_i16_t* coeffs, int16_t in){
-	int32_t accu;
-
-	accu = in + coeffs->offs;
-	accu *= coeffs->gain;
-
-	return( (int16_t) (accu>>8));
-}
+void datarec_sm(void);
+//void can_init(void);
+//void can_sm(void);
 
 //Control data struct
 typedef struct{
@@ -216,45 +154,6 @@ static int dataRecTrig = 0;
 
 static datarec_states_t myDataRecState = datarec_state_startup;
 
-
-static volatile struct{
-	int cnt;
-	int runs;
-	int errors;
-} myCanData;
-
-void can_init(void){
-	myCanData.cnt = 0;
-	myCanData.runs = 0;
-	myCanData.errors = 0;
-}
-
-void can_sm(void){
-	//if(mysens.state != sens_state_wft){ //send CAN only when active
-
-	myCanData.cnt++;
-	if(myCanData.cnt >= 16){ //1kHz
-	//if(myCanData.cnt >= 4){ //4kHz
-		myCanData.cnt = 0;
-		//TxData[0] = 0x34;
-		//TxData[1]++;
-		TxData[0] = (myctrl.ua) / 64;
-		TxData[1] = (myctrl.ub) / 64;
-		TxData[2] = (myctrl.ia) / 64;
-		TxData[3] = (myctrl.ib) / 64;
-		myCanData.runs++;
-		if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, TxData) != HAL_OK)
-		{
-			/* Transmission request Error */
-			myCanData.errors++;
-			//Error_Handler();
-		}
-	//}
-
-	}
-}
-
-
 typedef enum {
 	ctrl_sm_state_startup = 0,
 	ctrl_sm_state_curroffs = 1,
@@ -268,16 +167,16 @@ static control_pictrl_i16_t pi_a = {
 		.i_val = 0,
 		.ki = 40,
 		.kp = 4,
-		.max = 0,  // will be adapted "online" to vbus!!
-		.min = 0
+		.max = 0,  // will be adjusted according to current value of vbus
+		.min = 0   //--- " ---
 };
 
 static control_pictrl_i16_t pi_b = {
 		.i_val = 0,
 		.ki = 40,
 		.kp = 4,
-		.max = 0,
-		.min = 0
+		.max = 0,   // will be adjusted according to current value of vbus
+		.min = 0    //--- " ---
 };
 
 
@@ -293,7 +192,7 @@ void control_sm_to_ready_mode(void){
 	pwm_setrefint_3ph_tim1(refs);
 	ctrl_sm_edge_detect = 0;
 
-	can_init();
+	//can_init();
 }
 
 void control_sm_to_error(void){
@@ -318,39 +217,6 @@ void control_sm_to_ccon_mode(void){
 	LL_TIM_EnableAllOutputs(TIM1); //PWM on
 	ctrl_sm_edge_detect = 0;
 }
-
-
-void datarec_sm(void){
-	if(myDataRecState == datarec_state_startup){
-		myDataRecState = datarec_state_wft;
-	}
-	else if(myDataRecState == datarec_state_wft){
-		if(dataRecTrig){
-			i_elecnt = 0;
-			myDataRecState = datarec_state_rec;
-		}
-	}
-	else if(myDataRecState == datarec_state_rec){
-		//store debug data to buffers
-		int i_elecnt_dn = i_elecnt / CYCLEDIV;
-		myDataRecData.ia_buf[i_elecnt_dn] = myctrl.ia;
-		myDataRecData.ib_buf[i_elecnt_dn] = myctrl.ib;
-		myDataRecData.ic_buf[i_elecnt_dn] = myctrl.ic;
-		myDataRecData.ua_buf[i_elecnt_dn] = myctrl.ua;
-		myDataRecData.vbus_buf[i_elecnt_dn] = myctrl.vbus;
-
-		i_elecnt++;
-		if(i_elecnt/CYCLEDIV >= BUFLEN) {
-			myDataRecState = datarec_state_rdy;
-		}
-	}
-	else if(myDataRecState == datarec_state_rdy){
-		if(dataRecTrig == 0){ //wait for manual restart (use debugger!!)
-			myDataRecState = datarec_state_wft;
-		}
-	}
-}
-
 
 void control_sm(void){
 
@@ -610,12 +476,89 @@ void control_pwm_ctrl(void){
 	pwm_setrefint_3ph_tim1(refs);
 
 	datarec_sm();
-	can_sm();
+	//can_sm();
 
 	LL_GPIO_SetPinPull(BUTTON_GPIO_Port, BUTTON_Pin, LL_GPIO_PULL_NO);
 }
 
 
+
+
+
+// **** Code related to Data Recording ****
+void datarec_sm(void){
+	if(myDataRecState == datarec_state_startup){
+		myDataRecState = datarec_state_wft;
+	}
+	else if(myDataRecState == datarec_state_wft){
+		if(dataRecTrig){
+			i_elecnt = 0;
+			myDataRecState = datarec_state_rec;
+		}
+	}
+	else if(myDataRecState == datarec_state_rec){
+		//store debug data to buffers
+		int i_elecnt_dn = i_elecnt / CYCLEDIV;
+		myDataRecData.ia_buf[i_elecnt_dn] = myctrl.ia;
+		myDataRecData.ib_buf[i_elecnt_dn] = myctrl.ib;
+		myDataRecData.ic_buf[i_elecnt_dn] = myctrl.ic;
+		myDataRecData.ua_buf[i_elecnt_dn] = myctrl.ua;
+		myDataRecData.vbus_buf[i_elecnt_dn] = myctrl.vbus;
+
+		i_elecnt++;
+		if(i_elecnt/CYCLEDIV >= BUFLEN) {
+			myDataRecState = datarec_state_rdy;
+		}
+	}
+	else if(myDataRecState == datarec_state_rdy){
+		if(dataRecTrig == 0){ //wait for manual restart (use debugger!!)
+			myDataRecState = datarec_state_wft;
+		}
+	}
+}
+
+
+// **** Code related to CAN ****
+static FDCAN_RxHeaderTypeDef RxHeader;
+static uint8_t RxData[8];
+static FDCAN_TxHeaderTypeDef TxHeader;
+static uint8_t TxData[8];
+
+
+static volatile struct{
+	int cnt;
+	int runs;
+	int errors;
+} myCanData;
+
+void can_init(void){
+	myCanData.cnt = 0;
+	myCanData.runs = 0;
+	myCanData.errors = 0;
+}
+
+void can_sm(void){
+	//if(mysens.state != sens_state_wft){ //send CAN only when active
+
+	myCanData.cnt++;
+	if(myCanData.cnt >= 16){ //1kHz
+	//if(myCanData.cnt >= 4){ //4kHz
+		myCanData.cnt = 0;
+		//TxData[0] = 0x34;
+		//TxData[1]++;
+		TxData[0] = (myctrl.ua) / 64;
+		TxData[1] = (myctrl.ub) / 64;
+		TxData[2] = (myctrl.ia) / 64;
+		TxData[3] = (myctrl.ib) / 64;
+		myCanData.runs++;
+		if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, TxData) != HAL_OK)
+		{
+			/* Transmission request Error */
+			myCanData.errors++;
+			//Error_Handler();
+		}
+	}
+}
 
 
 void FDCAN_Config(void)

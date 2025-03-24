@@ -1,27 +1,11 @@
 #include "main.h"
 
 extern FDCAN_HandleTypeDef hfdcan1;
-//#include "stm32g4xx_hal.h"
 
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef struct
-{
-	uint8_t slaveNum; //I am slave no...
-	uint8_t slaveCnt; //Total no of slaves at bus
-	uint16_t slaveAdr;
-	uint16_t masterAdr;
-	uint8_t havePA : 1;  //Module with PA/LNA (MRF24J40ME) mounted
-} wfb_slave_settings_t;
-
-
-typedef struct
-{
-	int16_t gain;        //  gain, Q7.8
-	int16_t offs;        //  offset
-} interp_lin_i16_t;
-
+#include "ctrl_math.h"
 
 typedef struct
 {
