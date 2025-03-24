@@ -26,6 +26,8 @@ Vertical CAD design (base part)
 
 The design is intended to be used with Vishay CNY70 optical sensor for marble detection.
 
+The advantage of the vertical design is that the marble is at a defined state (no movement, $v_\mathrm{z} = 0$) at the beginning. This makes the accelerator parameters easier to tune, as the current level and duration of the current pulse are always the same.
+
 ## FEM Simulation (FEMM)
 
 ![FEM Simulation](img/FEMM_example.png)
