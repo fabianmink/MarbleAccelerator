@@ -1,7 +1,9 @@
 # Marble Accelerator
-This project deals with the construction of various accelerators (coil guns) for metallic marbles. It might be used e.g. for the GraviTrax marble run.
+This project deals with the construction of various accelerators (coil guns) for metallic marbles. It might be used e.g. for the GraviTrax marble run. It has been used in various student projects in electrical engineering bachelor's and master's programs in the IEM department at the THM Friedberg, e.g. [this one](https://www.youtube.com/watch?v=bSArWLXCZdo) 
 
 ## Coilgun Designs
+
+Coil winding cross sections are 15mm (coil length) x 7mm (inner radius 8mm, outer radius 15mm), leading to around 350 turns for 0.5mm wire diameter which results in an inductance of approximately 1mH.
 
 ### Horizontal coil design with two coils
 ![Horizontal coil design](img/coilgun_horizontal.jpg)
@@ -10,11 +12,19 @@ Horizontal CAD design (base and tube parts)
 
 ![horizontal design base](img/horizontal_base.png) ![horizontal design tube](img/horizontal_tube.png)
 
+The design is intended to be used with EVERLIGHT ITR9904 optical sensor for marble detection.
+
 ### Vertical coil design (single coil)
 
-Horizontal CAD design (base part)
+Vertical CAD design (base part)
 
-![horizontal design base](img/vertical_base.png)
+![vertical design base](img/vertical_base.png)
+
+![vertical whole marble track](img/vertical_complete.jpg)
+
+![vertical design accelerator coil](img/vertical_coil.jpg)
+
+The design is intended to be used with Vishay CNY70 optical sensor for marble detection.
 
 ## FEM Simulation (FEMM)
 
@@ -58,3 +68,7 @@ Model:
 Coil electromagnetic subsystem:
 
 ![Model of coil electromagnetic system](img/simulink_model_coil.png)
+
+## Power Electronics / Software
+
+The software is designed for STM's B-G431B-ESC1 (Discovery kit with STM32G431CB MCU); it also includes the neccessary power MOSFETs. The supply voltage is 24V. An external capacitor of approximately 20mF is recommended in order to provide the high pulsed currents of 10..20A for durations of a few 10ms.
