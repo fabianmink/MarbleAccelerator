@@ -63,6 +63,14 @@ typedef enum {
 	ctrl_errors_other = 5
 } ctrl_errors_t;
 
+typedef struct{
+	uint8_t ticks;
+	uint8_t ticks_per_ms;
+	uint16_t ms;
+	uint32_t s;
+}
+clock_data_t;
+
 //Control data struct
 typedef struct{
 	int16_t ia;
@@ -72,6 +80,7 @@ typedef struct{
 	int16_t ub;
 	int16_t uc;
 	int16_t vbus;
+	int16_t divVbus;
 	int16_t iaref;
 	int16_t iaval;
 	int16_t ibref;
@@ -91,6 +100,10 @@ typedef struct{
 	int32_t ia_offs_sum;
 	int32_t ib_offs_sum;
 	int32_t ic_offs_sum;
+	uint32_t timCnt_ctrl_begin;  //counter value at beginning of control routine
+	uint32_t timCnt_ctrl_check;  //counter value at checkpoint in control routine
+	uint32_t timCnt_ctrl_end;    //counter value at end of control routine
+	clock_data_t clock;
 } ctrl_data_t;
 
 static ctrl_data_t myctrl;
@@ -296,6 +309,11 @@ void control_init(void){
 
 	myctrl.error = ctrl_errors_none;
 
+	myctrl.clock.ticks_per_ms = 16;
+	myctrl.clock.ticks = 0;
+	myctrl.clock.ms = 0;
+	myctrl.clock.s = 0;
+
 	mysensor.cnt = 0;
 	mysensor.spd = 0;
 	mysensor.pos = 0;
@@ -310,6 +328,8 @@ void control_init(void){
 //32kHz PWM
 //16kHz call frequency, due to RepetitionCounter = 3
 void control_pwm_ctrl(void){
+	myctrl.timCnt_ctrl_begin = TIM1->CNT;
+
 	//Check for button press
 	if(LL_GPIO_IsInputPinSet(BUTTON_GPIO_Port, BUTTON_Pin)){
 		myctrl.button_pressed = 0;
@@ -325,9 +345,7 @@ void control_pwm_ctrl(void){
 		myctrl.trigger_in = 1;
 	}
 
-	control_sm();
-
-	// *** CURRENT MEASUREMENT and transformation ***
+	// *** ADC values read and conversion ***
 	int retry = 0;
 	while(!LL_ADC_IsActiveFlag_JEOS(ADC1)){
 		retry++;
@@ -340,7 +358,6 @@ void control_pwm_ctrl(void){
 			}
 		}
 	}
-
 	//Currents are in int16, Q7.8
 	int16_t ia_raw = (int16_t) LL_ADC_INJ_ReadConversionData12(ADC1, LL_ADC_INJ_RANK_1);
 	myctrl.ia = interp_linearTrsfm_i16(&calib_data.ia, ia_raw);
@@ -348,14 +365,6 @@ void control_pwm_ctrl(void){
 	//1024 = 9.0V,  1143 = 10.0V, 1262 = 11.0V
 	int16_t vbusraw = (int16_t) LL_ADC_INJ_ReadConversionData12(ADC1, LL_ADC_INJ_RANK_2);
 	myctrl.vbus = interp_linearTrsfm_i16(&calib_data.vbus, vbusraw);
-	//vbus value limitation
-	if( myctrl.vbus < (5<<8) ) {
-		myctrl.vbus = (5<<8);
-	}
-	if( myctrl.vbus > (40<<8) ){
-		myctrl.vbus = (40<<8);
-	}
-	int16_t divvbus = 32767/myctrl.vbus;
 
 	int16_t potiraw = (int16_t) LL_ADC_INJ_ReadConversionData12(ADC1, LL_ADC_INJ_RANK_3);
 	myctrl.poti = interp_linearTrsfm_i16(&calib_data.poti, potiraw);
@@ -366,6 +375,7 @@ void control_pwm_ctrl(void){
 	int16_t ic_raw = (int16_t) LL_ADC_INJ_ReadConversionData12(ADC2, LL_ADC_INJ_RANK_2);
 	myctrl.ic = interp_linearTrsfm_i16(&calib_data.ic, ic_raw);
 
+	// *** Error handling ***
 	if(myctrl.state == ctrl_sm_state_ccon){
 		//signal over- / undervoltage and overcurrent
 		if(  (myctrl.ia > calib_data.imax)  ||  (myctrl.ia < -calib_data.imax)   )  {
@@ -390,6 +400,16 @@ void control_pwm_ctrl(void){
 		}
 	}
 
+	// vbus inverse calculation
+	int16_t vbus = myctrl.vbus;
+	if( vbus < (5<<8) ) {
+		vbus = (5<<8);
+	}
+	if( vbus > (40<<8) ){
+		vbus = (40<<8);
+	}
+	myctrl.divVbus = 32767/vbus;
+
 	sens_eval();
 
 	if (myctrl.state == ctrl_sm_state_curroffs) {
@@ -399,11 +419,11 @@ void control_pwm_ctrl(void){
 	}
 
 
-	// *** CONTROLLERS: Position / Current ***
-	if(myctrl.state == ctrl_sm_state_ccon){
-		myctrl.iaref = 256*0; //0A
-		myctrl.ibref = 256*0; //0A
+	// *** Current setpoint generation ***
+	myctrl.iaref = 256*0; //0A
+	myctrl.ibref = 256*0; //0A
 
+	if(myctrl.state == ctrl_sm_state_ccon){
 		if(mysensor.state == sens_state_rdy){
 			if(   (mysensor.cnt > myctrl.cnt_starta) && (mysensor.cnt < myctrl.cnt_stopa)){
 				myctrl.iaref = myctrl.iaval; //for testing
@@ -417,6 +437,7 @@ void control_pwm_ctrl(void){
 		}
 	}
 
+	// *** Current ***
 	if( myctrl.state == ctrl_sm_state_ccon ){
 		//Current Controllers
 		myctrl.pi_a.max = myctrl.vbus/2;
@@ -431,17 +452,17 @@ void control_pwm_ctrl(void){
 
 
 	int16_t refs[3];
-	int32_t tmpref = myctrl.ua*divvbus;
+	int32_t tmpref = myctrl.ua*myctrl.divVbus;
 	if(tmpref > 32767) tmpref = 32767;
 	if(tmpref < -32768) tmpref = -32768;
 	refs[0] = tmpref;
 
-	tmpref = myctrl.ub*divvbus;
+	tmpref = myctrl.ub*myctrl.divVbus;
 	if(tmpref > 32767) tmpref = 32767;
 	if(tmpref < -32768) tmpref = -32768;
 	refs[1] = tmpref;
 
-	tmpref = myctrl.uc*divvbus;
+	tmpref = myctrl.uc*myctrl.divVbus;
 	if(tmpref > 32767) tmpref = 32767;
 	if(tmpref < -32768) tmpref = -32768;
 	refs[2] = tmpref;
@@ -455,11 +476,28 @@ void control_pwm_ctrl(void){
 	//PWM output
 	pwm_setrefint_3ph_tim1(refs);
 
+	myctrl.timCnt_ctrl_check = TIM1->CNT;
+
+	control_sm();
+
 	datarec_sm();
 	//can_sm();
 
+
+	myctrl.clock.ticks++;
+	if(myctrl.clock.ticks >= myctrl.clock.ticks_per_ms){
+		myctrl.clock.ticks=0;
+		myctrl.clock.ms++;
+	}
+	if(myctrl.clock.ms >= 1000){
+		myctrl.clock.ms=0;
+		myctrl.clock.s++;
+	}
+
 	//Disable pull down in order to indicate function end
 	LL_GPIO_SetPinPull(BUTTON_GPIO_Port, BUTTON_Pin, LL_GPIO_PULL_NO);
+
+	myctrl.timCnt_ctrl_end = TIM1->CNT;
 }
 
 
@@ -521,6 +559,8 @@ void datarec_sm(void){
 
 
 // **** Code related to CAN ****
+#ifdef USE_CAN
+
 static FDCAN_RxHeaderTypeDef RxHeader;
 static uint8_t RxData[8];
 static FDCAN_TxHeaderTypeDef TxHeader;
@@ -643,3 +683,4 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
   }
 }
 
+#endif //USE_CAN
