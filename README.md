@@ -74,3 +74,10 @@ Coil electromagnetic subsystem:
 ## Power Electronics / Software
 
 The software is designed for STM's B-G431B-ESC1 (Discovery kit with STM32G431CB MCU); it also includes the neccessary power MOSFETs. The supply voltage is 24V. An external capacitor of approximately 20mF is recommended in order to provide the high pulsed currents of 10..20A for durations of a few 10ms.
+
+
+## Simlar projects
+
+- [lincoln1clarke (Instructables) - Electromagnetic Marble Accelerator for Gravitrax](https://www.instructables.com/Electromagnetic-Marble-Accelerator-for-Gravitrax/)
+- [HyperspacePirate (Thingiverse) - Electromagnetic Accelerator](https://www.thingiverse.com/thing:4918703)
+- [William Le - Perpetual Marble Machine](https://lovelywings.store/)
