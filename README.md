@@ -18,7 +18,7 @@ The design is intended to be used with EVERLIGHT ITR9904 optical sensor for marb
 
 Vertical CAD design (base part)
 
-![vertical design base](img/vertical_base.png)
+![vertical design base](img/vertical_base.png)  ![vertical output](img/vertical_output.png)
 
 ![vertical whole marble track](img/vertical_complete.jpg)
 
