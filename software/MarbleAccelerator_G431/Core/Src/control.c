@@ -80,14 +80,17 @@ clock_data_t;
 
 //Control data struct
 typedef struct{
-	int16_t ia;
-	int16_t ib;
-	int16_t ic;
-	int16_t ua;
-	int16_t ub;
-	int16_t uc;
-	int16_t vbus;
-	int16_t divVbus;
+	int16_t ia;       //int16, Q7.8
+	int16_t ib;       //int16, Q7.8
+	int16_t ic;       //int16, Q7.8
+	int16_t ua;       //int16, Q7.8
+	int16_t ub;       //int16, Q7.8
+	int16_t uc;       //int16, Q7.8
+	int16_t vbus;     //int16, Q7.8
+	int16_t divVbus;  //int16, Q0.15
+	int16_t pwmrefa;  //int16, Q0.15
+	int16_t pwmrefb;  //int16, Q0.15
+	int16_t pwmrefc;  //int16, Q0.15
 	int16_t iaref;
 	int16_t iaval;
 	int16_t ibref;
@@ -439,7 +442,7 @@ void control_pwm_ctrl(void){
 	if( vbus > (40<<8) ){
 		vbus = (40<<8);
 	}
-	myctrl.divVbus = 32767/vbus;
+	myctrl.divVbus = 8388608/vbus;
 
 	sens_eval();
 
@@ -482,29 +485,33 @@ void control_pwm_ctrl(void){
 	}
 
 
-	int16_t refs[3];
-	int32_t tmpref = myctrl.ua*myctrl.divVbus;
-	if(tmpref > 32767) tmpref = 32767;
-	if(tmpref < -32768) tmpref = -32768;
-	refs[0] = tmpref;
 
-	tmpref = myctrl.ub*myctrl.divVbus;
+	int32_t tmpref = (myctrl.ua*myctrl.divVbus) >> 8;  //Q7.8 * Q0.15 >> 8 = ???
 	if(tmpref > 32767) tmpref = 32767;
 	if(tmpref < -32768) tmpref = -32768;
-	refs[1] = tmpref;
+	myctrl.pwmrefa = tmpref;
 
-	tmpref = myctrl.uc*myctrl.divVbus;
+	tmpref = (myctrl.ub*myctrl.divVbus) >> 8;
 	if(tmpref > 32767) tmpref = 32767;
 	if(tmpref < -32768) tmpref = -32768;
-	refs[2] = tmpref;
+	myctrl.pwmrefb = tmpref;
+
+	tmpref = (myctrl.uc*myctrl.divVbus) >> 8;
+	if(tmpref > 32767) tmpref = 32767;
+	if(tmpref < -32768) tmpref = -32768;
+	myctrl.pwmrefc = tmpref;
 
 	if(myctrl.state == ctrl_sm_state_ready){
-		refs[0] = 0;
-		refs[1] = 0;
-		refs[2] = 0;
+		myctrl.pwmrefa = 0;
+		myctrl.pwmrefb = 0;
+		myctrl.pwmrefc = 0;
 	}
 
 	//PWM output
+	int16_t refs[3];
+	refs[0] = myctrl.pwmrefa;
+	refs[1] = myctrl.pwmrefb;
+	refs[2] = myctrl.pwmrefc;
 	pwm_setrefint_3ph_tim1(refs);
 
 	myctrl.timCnt_ctrl_check = TIM1->CNT;
