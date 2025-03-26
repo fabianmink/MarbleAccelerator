@@ -50,9 +50,16 @@ typedef enum {
 	ctrl_sm_state_curroffs = 1,
 	ctrl_sm_state_ready = 3,
 	ctrl_sm_state_ccon = 4,
+	ctrl_sm_state_off = 5,
 	ctrl_sm_state_error = 8
 } ctrl_sm_states_t;
 
+
+typedef enum {
+	ctrl_sm_cmd_none = 0,
+	ctrl_sm_cmd_start = 1,
+	ctrl_sm_cmd_stop = 2
+} ctrl_sm_cmd_t;
 
 typedef enum {
 	ctrl_errors_none = 0,
@@ -96,6 +103,7 @@ typedef struct{
 	bool trigger_in;      //indicate input (currently unused)
 	uint32_t ctrl_sm_cnt;
 	ctrl_sm_states_t state;
+	ctrl_sm_cmd_t cmd;
 	ctrl_errors_t error;
 	int32_t ia_offs_sum;
 	int32_t ib_offs_sum;
@@ -162,6 +170,16 @@ void control_sm_to_ready_mode(void){
 	//can_init();
 }
 
+void control_sm_to_off_mode(void){
+	//stop PWM
+	LL_TIM_DisableAllOutputs(TIM1); //PWM off
+	myctrl.ctrl_sm_cnt = 0;
+	myctrl.state = ctrl_sm_state_off;
+	int16_t refs[3] = {0,0,0};
+	pwm_setrefint_3ph_tim1(refs);
+	//can_init();
+}
+
 void control_sm_to_error(void){
 	//stop PWM
 	LL_TIM_DisableAllOutputs(TIM1); //PWM off
@@ -192,34 +210,6 @@ void control_sm(void){
 			myctrl.state = ctrl_sm_state_curroffs;
 		}
 	}
-	else if(myctrl.state == ctrl_sm_state_ready){
-		myctrl.ctrl_sm_cnt++;
-		//if(myctrl.ctrl_sm_cnt >= 8000){  //with autostart after 0.5s
-		if(myctrl.ctrl_sm_cnt >= 64000){  //with autostart after 4s
-			//if(button_pressed){
-			control_sm_to_ccon_mode();
-			//}
-		}
-	}
-	else if(myctrl.state == ctrl_sm_state_error){
-		//Reset via button possible after at least 1s
-		if(myctrl.ctrl_sm_cnt < 16000){
-			//If button is pressed before 1s elapsed, ignore it and restart counting
-			if(myctrl.button_pressed){
-				myctrl.ctrl_sm_cnt = 0;
-			}
-			else {
-				myctrl.ctrl_sm_cnt++;
-			}
-		}
-		else {
-			//Error reset when button pressed
-			if(myctrl.button_pressed){
-				myctrl.ctrl_sm_cnt = 0;
-				control_sm_to_ready_mode();
-			}
-		}
-	}
 	else if(myctrl.state == ctrl_sm_state_curroffs){
 		//wait 0.5s for offset determination
 		if(myctrl.ctrl_sm_cnt < 8000){
@@ -235,18 +225,58 @@ void control_sm(void){
 			control_sm_to_ready_mode();
 		}
 	}
+	else if(myctrl.state == ctrl_sm_state_ready){
+		myctrl.ctrl_sm_cnt++;
+		//if(myctrl.ctrl_sm_cnt >= 8000){  //with autostart after 0.5s
+		if(myctrl.ctrl_sm_cnt >= 64000){  //with autostart after 4s
+			//if(button_pressed){
+			control_sm_to_ccon_mode();
+			//}
+		}
+	}
 	else if(myctrl.state == ctrl_sm_state_ccon){
-		//Switch off via button possible after at least 0.5s
-		if(myctrl.ctrl_sm_cnt < 8000){
+		if(myctrl.cmd == ctrl_sm_cmd_stop){
+			myctrl.cmd = ctrl_sm_cmd_none;
+			control_sm_to_off_mode();
+		}
+		else if(myctrl.ctrl_sm_cnt < 8000){ //Switch off via button possible after at least 0.5s
 			myctrl.ctrl_sm_cnt++;
 		}
 		else {
 			if(myctrl.button_pressed){
+				control_sm_to_off_mode();
+			}
+		}
+	}
+	else if(myctrl.state == ctrl_sm_state_off){
+		//Restart when button pressed
+		if((myctrl.button_pressed) || myctrl.cmd == ctrl_sm_cmd_start){
+			myctrl.cmd = ctrl_sm_cmd_none;
+			myctrl.ctrl_sm_cnt = 0;
+			control_sm_to_ready_mode();
+		}
+	}
+	else if(myctrl.state == ctrl_sm_state_error){
+		//Reset via button possible after at least 1s
+		if(myctrl.ctrl_sm_cnt < 16000){
+			//If button is pressed before 1s elapsed, ignore it and restart counting
+			if((myctrl.button_pressed) || myctrl.cmd == ctrl_sm_cmd_start){
+				myctrl.cmd = ctrl_sm_cmd_none;
+				myctrl.ctrl_sm_cnt = 0;
+			}
+			else {
+				myctrl.ctrl_sm_cnt++;
+			}
+		}
+		else {
+			//Error reset when button pressed
+			if((myctrl.button_pressed) || myctrl.cmd == ctrl_sm_cmd_start){
+				myctrl.cmd = ctrl_sm_cmd_none;
+				myctrl.ctrl_sm_cnt = 0;
 				control_sm_to_ready_mode();
 			}
 		}
 	}
-
 }
 
 void sens_eval(void){
@@ -305,6 +335,7 @@ void control_init(void){
 	myctrl.pi_b.ki = 40;
 
 	myctrl.state = ctrl_sm_state_startup;
+	myctrl.cmd = ctrl_sm_cmd_none;
 	myctrl.ctrl_sm_cnt = 0;
 
 	myctrl.error = ctrl_errors_none;
