@@ -16,7 +16,7 @@ The design is intended to be used with EVERLIGHT ITR9904 optical sensor for marb
 
 ### Vertical coil design (single coil)
 
-Vertical CAD design (base part)
+Vertical CAD design (base part and output)
 
 ![vertical design base](img/vertical_base.png)  ![vertical output](img/vertical_output.png)
 
