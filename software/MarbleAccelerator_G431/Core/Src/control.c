@@ -331,11 +331,11 @@ void control_init(void){
 	//myctrl.ibval = 0;
 
 	//Current controllers
-	myctrl.pi_a.kp = 4;
-	myctrl.pi_a.ki = 40;
+	myctrl.pi_a.kp = 2;
+	myctrl.pi_a.ki = 20;
 
-	myctrl.pi_b.kp = 4;
-	myctrl.pi_b.ki = 40;
+	myctrl.pi_b.kp = 2;
+	myctrl.pi_b.ki = 20;
 
 	myctrl.state = ctrl_sm_state_startup;
 	myctrl.cmd = ctrl_sm_cmd_none;
@@ -474,10 +474,10 @@ void control_pwm_ctrl(void){
 	// *** Current ***
 	if( myctrl.state == ctrl_sm_state_ccon ){
 		//Current Controllers
-		myctrl.pi_a.max = myctrl.vbus/2;
-		myctrl.pi_a.min = -myctrl.vbus/2;
-		myctrl.pi_b.max = myctrl.vbus/2;
-		myctrl.pi_b.min = -myctrl.vbus/2;
+		myctrl.pi_a.max = myctrl.vbus;
+		myctrl.pi_a.min = -myctrl.vbus;
+		myctrl.pi_b.max = myctrl.vbus;
+		myctrl.pi_b.min = -myctrl.vbus;
 
 		myctrl.ua = control_pictrl_i16(&myctrl.pi_a,myctrl.iaref,myctrl.ia);
 		myctrl.ub = control_pictrl_i16(&myctrl.pi_b,myctrl.ibref,myctrl.ib);
