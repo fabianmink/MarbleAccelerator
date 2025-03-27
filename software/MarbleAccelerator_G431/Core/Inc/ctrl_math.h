@@ -2,8 +2,8 @@
 
 typedef struct
 {
-	int16_t kp;       //  P-Gain Q13.2
-	int16_t ki;       //  I-Gain Q7.8
+	int16_t kp;       //  P-Gain Q5.10
+	int16_t ki;       //  I-Gain Q3.12
 	int16_t min;      //  lower output limit
 	int16_t max;      //  upper output limit
 	int32_t i_val;    //  current integral value

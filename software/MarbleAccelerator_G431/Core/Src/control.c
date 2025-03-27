@@ -91,10 +91,10 @@ typedef struct{
 	int16_t pwmrefa;  //int16, Q0.15
 	int16_t pwmrefb;  //int16, Q0.15
 	int16_t pwmrefc;  //int16, Q0.15
-	int16_t iaref;
-	int16_t iaval;
-	int16_t ibref;
-	int16_t ibval;
+	int16_t iaref;    //int16, Q7.8
+	int16_t ibref;    //int16, Q7.8
+	int16_t iaval;    //int16, Q7.8
+	int16_t ibval;    //int16, Q7.8
 	uint32_t cnt_starta;
 	uint32_t cnt_stopa;
 	uint32_t cnt_startb;
@@ -331,11 +331,14 @@ void control_init(void){
 	//myctrl.ibval = 0;
 
 	//Current controllers
-	myctrl.pi_a.kp = 2;
-	myctrl.pi_a.ki = 20;
+	myctrl.pi_a.kp = 0.5 * 4*256;     // 0.5V/A
+	myctrl.pi_a.ki = 0.1 * 16*256;    // 0.1V/(A*Ts) = 1.6V/(A*ms) (for Ts = 0.0625ms)
 
-	myctrl.pi_b.kp = 2;
-	myctrl.pi_b.ki = 20;
+	myctrl.pi_b.kp = 0.5 * 4*256;     // 0.5V/A
+	myctrl.pi_b.ki = 0.1 * 16*256;    // 0.1V/(A*Ts) = 1.6V/(A*ms) (for Ts = 0.0625ms)
+
+	myctrl.iaref = 0;
+	myctrl.ibref = 0;
 
 	myctrl.state = ctrl_sm_state_startup;
 	myctrl.cmd = ctrl_sm_cmd_none;

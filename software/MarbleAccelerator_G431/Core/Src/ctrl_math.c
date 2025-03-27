@@ -37,13 +37,14 @@ int16_t control_pictrl_i16(control_pictrl_i16_t* controller, int16_t ref, int16_
 	ctrldiff = ((int32_t)ref - (int32_t)act);
 	p_val = (((int32_t)controller->kp) * ctrldiff) >> 2;
 	if(controller->ki){
-		i_val = ((((int32_t)controller->ki) * ctrldiff)>>8) + controller->i_val;
+		i_val = ((((int32_t)controller->ki) * ctrldiff)>>4) + controller->i_val;
 	}
 	else {
 		i_val = 0.0f;
 	}
 
 	tmp_out = (p_val + i_val);
+	tmp_out = tmp_out>>8;
 
 	if(tmp_out > controller->max){
 		tmp_out = controller->max;
@@ -55,7 +56,6 @@ int16_t control_pictrl_i16(control_pictrl_i16_t* controller, int16_t ref, int16_
 		if(i_val < controller->i_val) i_val = controller->i_val;
 		//i_val = controller->min - p_val;
 	}
-
 	controller->i_val = i_val;
 	return((int16_t)tmp_out);
 }
