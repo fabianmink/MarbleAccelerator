@@ -484,10 +484,15 @@ void control_pwm_ctrl(void){
 
 		myctrl.ua = control_pictrl_i16(&myctrl.pi_a,myctrl.iaref,myctrl.ia);
 		myctrl.ub = control_pictrl_i16(&myctrl.pi_b,myctrl.ibref,myctrl.ib);
-		myctrl.uc = -(myctrl.ua/2 + myctrl.ub/2);
+		myctrl.uc = 0;
 	}
 
-
+	//Symmetrizing
+	int32_t uavg = (myctrl.ua + myctrl.ub + myctrl.uc) / 3;
+	int16_t uavg16 = (int16_t)uavg;
+	myctrl.ua -= uavg16;
+	myctrl.ub -= uavg16;
+	myctrl.uc -= uavg16;
 
 	int32_t tmpref = (myctrl.ua*myctrl.divVbus) >> 8;  //Q7.8 * Q0.15 >> 8 = ???
 	if(tmpref > 32767) tmpref = 32767;
