@@ -84,9 +84,9 @@ typedef struct{
 	int16_t ia;       //int16, Q7.8
 	int16_t ib;       //int16, Q7.8
 	int16_t ic;       //int16, Q7.8
-	int16_t ua;       //int16, Q7.8
-	int16_t ub;       //int16, Q7.8
-	int16_t uc;       //int16, Q7.8
+	int16_t ua;       //int16, Q7.8, can be -vbus/2 ... vbus/2
+	int16_t ub;       //int16, Q7.8, can be -vbus/2 ... vbus/2
+	int16_t uc;       //int16, Q7.8, can be -vbus/2 ... vbus/2
 	int16_t vbus;     //int16, Q7.8
 	int16_t divVbus;  //int16, Q0.15
 	int16_t pwmrefa;  //int16, Q0.15
@@ -94,12 +94,6 @@ typedef struct{
 	int16_t pwmrefc;  //int16, Q0.15
 	int16_t iaref;    //int16, Q7.8
 	int16_t ibref;    //int16, Q7.8
-	int16_t iaval;    //int16, Q7.8
-	int16_t ibval;    //int16, Q7.8
-	uint32_t cnt_starta;
-	uint32_t cnt_stopa;
-	uint32_t cnt_startb;
-	uint32_t cnt_stopb;
 	int16_t poti;
 	control_pictrl_i16_t pi_a;
 	control_pictrl_i16_t pi_b;
@@ -143,6 +137,14 @@ typedef struct{
 	uint16_t hyst;
 	sensor_states_t state;
 	sensor_cmd_t cmd;
+	int16_t iaref;   //int16, Q7.8
+	int16_t ibref;   //int16, Q7.8
+	int16_t iaval;   //int16, Q7.8
+	int16_t ibval;   //int16, Q7.8
+	uint32_t cnt_starta;
+	uint32_t cnt_stopa;
+	uint32_t cnt_startb;
+	uint32_t cnt_stopb;
 } sensor_data_t;
 
 static sensor_data_t mysensor;
@@ -217,6 +219,7 @@ void control_sm_to_ccon_mode(void){
 	LL_TIM_EnableAllOutputs(TIM1); //PWM on
 }
 
+//Control state machine
 void control_sm(void){
 	if(myctrl.state == ctrl_sm_state_startup){
 		myctrl.ctrl_sm_cnt++;
@@ -244,10 +247,11 @@ void control_sm(void){
 	}
 	else if(myctrl.state == ctrl_sm_state_ready){
 		myctrl.ctrl_sm_cnt++;
-		//if(myctrl.ctrl_sm_cnt >= 8000){  //with autostart after 0.5s
-		if(myctrl.ctrl_sm_cnt >= 64000){  //with autostart after 4s
+		//if(myctrl.ctrl_sm_cnt >= 64000){  //with autostart after 4s
+		if(myctrl.ctrl_sm_cnt >= 8000){  //with autostart after 0.5s
 			//if(button_pressed){
 			control_sm_to_ccon_mode();
+			//control_sm_to_vcon_mode();
 			//}
 		}
 	}
@@ -296,7 +300,11 @@ void control_sm(void){
 	}
 }
 
-void sens_eval(void){
+//Evaluale sensor and generate current setpoint
+void sensor_calculation(void){
+	mysensor.iaref = 0;
+	mysensor.ibref = 0;
+
 	if( mysensor.state == sens_state_wft){
 		mysensor.cnt = 0;
 		if(myctrl.poti < mysensor.level-mysensor.hyst){
@@ -330,31 +338,32 @@ void sens_eval(void){
 	}
 	else if( mysensor.state == sens_state_rdy){
 		mysensor.cnt++;
+
+		if(   (mysensor.cnt > mysensor.cnt_starta) && (mysensor.cnt < mysensor.cnt_stopa)){
+			mysensor.iaref = mysensor.iaval; //for testing
+		}
+		if(   (mysensor.cnt > mysensor.cnt_startb) && (mysensor.cnt < mysensor.cnt_stopb)){
+			mysensor.ibref = mysensor.ibval; //for testing
+		}
+		if(mysensor.cnt > mysensor.cnt_stopb){
+			mysensor.cmd = sens_cmd_reset;
+		}
+
 		if(mysensor.cmd == sens_cmd_reset){
 			mysensor.cmd = sens_cmd_none;
 			mysensor.state = sens_state_wft;
 		}
 	}
-
 }
 
 
 void control_init(void){
-	myctrl.cnt_starta = 0;
-	myctrl.cnt_stopa = 200;
-	myctrl.iaval = 3000; //ca. 10A
-
-	myctrl.cnt_startb = 200;
-	myctrl.cnt_stopb = 800;
-	myctrl.ibval = 4200;
-	//myctrl.ibval = 0;
-
-	//Current controllers
-	myctrl.pi_a.kp = 0.5 * 4*256;     // 0.5V/A
-	myctrl.pi_a.ki = 0.1 * 16*256;    // 0.1V/(A*Ts) = 1.6V/(A*ms) (for Ts = 0.0625ms)
+	//Current controllers init
+	myctrl.pi_a.kp = 0.25 * 4*256;     // 0.25V/A
+	myctrl.pi_a.ki = 0.05 * 16*256;    // 0.05V/(A*Ts) = 0.8V/(A*ms) (@Ts = 0.0625ms)
 #ifndef SINGLECOIL_DESIGN
-	myctrl.pi_b.kp = 0.5 * 4*256;     // 0.5V/A
-	myctrl.pi_b.ki = 0.1 * 16*256;    // 0.1V/(A*Ts) = 1.6V/(A*ms) (for Ts = 0.0625ms)
+	myctrl.pi_b.kp = 0.25 * 4*256;     // 0.25V/A
+	myctrl.pi_b.ki = 0.05 * 16*256;    // 0.05V/(A*Ts) = 0.8V/(A*ms) (@Ts = 0.0625ms)
 #endif
 	myctrl.iaref = 0;
 	myctrl.ibref = 0;
@@ -370,10 +379,19 @@ void control_init(void){
 	myctrl.clock.ms = 0;
 	myctrl.clock.s = 0;
 
+	//Sensor init
+	mysensor.cnt_starta = 0;
+	mysensor.cnt_stopa = 250; //12.5*16;  //12.5ms
+	mysensor.iaval = 3500; //11.7*256;     //11.7A
+
+	mysensor.cnt_startb = 200; //12.5*16; //12.5ms
+	mysensor.cnt_stopb = 550; //50*16;    //50ms
+	mysensor.ibval = -4000; //16.4*256;     //16.4A
+
 	mysensor.cnt = 0;
 	mysensor.spd = 0;
 	mysensor.pos = 0;
-	mysensor.trigpos = 3000000;
+	mysensor.trigpos = 1000000;
 	mysensor.level = 3500;
 	mysensor.hyst = 100;
 	mysensor.state = sens_state_wft;
@@ -384,6 +402,7 @@ void control_init(void){
 //32kHz PWM
 //16kHz call frequency, due to RepetitionCounter = 3
 void control_pwm_ctrl(void){
+	//Startpoint for timing
 	myctrl.timCnt_ctrl_begin = TIM1->CNT;
 
 	//Check for button press
@@ -463,7 +482,7 @@ void control_pwm_ctrl(void){
 	}
 	myctrl.divVbus = 8388608/vbus;   //2^23  (.vbus is Q7.8, .divVbus is Q0.15)
 
-	sens_eval();
+	sensor_calculation();
 
 	if (myctrl.state == ctrl_sm_state_curroffs) {
 		myctrl.ia_offs_sum -= ia_raw;
@@ -473,31 +492,19 @@ void control_pwm_ctrl(void){
 
 
 	// *** Current setpoint generation ***
-	myctrl.iaref = 256*0; //0A
-	myctrl.ibref = 256*0; //0A
+	//OPTIONAL: if(USE_SENSOR_FOR_CURRENT_SETPOINT)
+	myctrl.iaref = mysensor.iaref;
+	myctrl.ibref = mysensor.ibref;
 
-	if(myctrl.state == ctrl_sm_state_ccon){
-		if(mysensor.state == sens_state_rdy){
-			if(   (mysensor.cnt > myctrl.cnt_starta) && (mysensor.cnt < myctrl.cnt_stopa)){
-				myctrl.iaref = myctrl.iaval; //for testing
-			}
-			if(   (mysensor.cnt > myctrl.cnt_startb) && (mysensor.cnt < myctrl.cnt_stopb)){
-				myctrl.ibref = myctrl.ibval; //for testing
-			}
-			if(mysensor.cnt > myctrl.cnt_stopb){
-				mysensor.cmd = sens_cmd_reset;
-			}
-		}
-	}
 
-	// *** Current ***
+	// *** Current control ***
 	if( myctrl.state == ctrl_sm_state_ccon ){
 		//Current Controllers
-		myctrl.pi_a.max = myctrl.vbus;
-		myctrl.pi_a.min = -myctrl.vbus;
+		myctrl.pi_a.max = myctrl.vbus/2;
+		myctrl.pi_a.min = -myctrl.vbus/2;
 #ifndef SINGLECOIL_DESIGN
-		myctrl.pi_b.max = myctrl.vbus;
-		myctrl.pi_b.min = -myctrl.vbus;
+		myctrl.pi_b.max = myctrl.vbus/2;
+		myctrl.pi_b.min = -myctrl.vbus/2;
 #endif
 
 #ifdef SINGLECOIL_DESIGN
@@ -517,21 +524,25 @@ void control_pwm_ctrl(void){
 		myctrl.uc -= uavg16;
 #endif
 	}
+	else if( myctrl.state == ctrl_sm_state_vcon ){
+		//currently allows manual setting of ua,ub,uc via debugger
+	}
 	else {
 		myctrl.ua = myctrl.ub = myctrl.uc = 0;
 	}
 
-	int32_t tmpref = (myctrl.ua*myctrl.divVbus) >> 8;  //Q7.8 * Q0.15 >> 8 = ???
+	// *** PWM calculation / output ***
+	int32_t tmpref = (myctrl.ua*myctrl.divVbus*2) >> 8;  //Q7.8 * Q0.15   (.ua is -(.vbus/2) ... +(.vbus/2) )
 	if(tmpref > 32767) tmpref = 32767;
 	if(tmpref < -32768) tmpref = -32768;
 	myctrl.pwmrefa = tmpref;
 
-	tmpref = (myctrl.ub*myctrl.divVbus) >> 8;
+	tmpref = (myctrl.ub*myctrl.divVbus*2) >> 8;
 	if(tmpref > 32767) tmpref = 32767;
 	if(tmpref < -32768) tmpref = -32768;
 	myctrl.pwmrefb = tmpref;
 
-	tmpref = (myctrl.uc*myctrl.divVbus) >> 8;
+	tmpref = (myctrl.uc*myctrl.divVbus*2) >> 8;
 	if(tmpref > 32767) tmpref = 32767;
 	if(tmpref < -32768) tmpref = -32768;
 	myctrl.pwmrefc = tmpref;
@@ -549,6 +560,7 @@ void control_pwm_ctrl(void){
 	refs[2] = myctrl.pwmrefc;
 	pwm_setrefint_3ph_tim1(refs);
 
+	//Checkpoint for timing
 	myctrl.timCnt_ctrl_check = TIM1->CNT;
 
 	control_sm();
@@ -556,7 +568,7 @@ void control_pwm_ctrl(void){
 	datarec_sm();
 	//can_sm();
 
-
+	// *** Clock / Uptime calculation ***
 	myctrl.clock.ticks++;
 	if(myctrl.clock.ticks >= myctrl.clock.ticks_per_ms){
 		myctrl.clock.ticks=0;
@@ -570,6 +582,7 @@ void control_pwm_ctrl(void){
 	//Disable pull down in order to indicate function end
 	LL_GPIO_SetPinPull(BUTTON_GPIO_Port, BUTTON_Pin, LL_GPIO_PULL_NO);
 
+	//Endpoint for timing
 	myctrl.timCnt_ctrl_end = TIM1->CNT;
 }
 
