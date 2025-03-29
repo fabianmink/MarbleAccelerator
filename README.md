@@ -1,6 +1,8 @@
 # Marble Accelerator
 This project deals with the construction of various accelerators (coil guns) for metallic marbles. It might be used e.g. for the GraviTrax marble run. It has been used in various student projects in electrical engineering bachelor's and master's programs in the IEM department at the THM Friedberg, e.g. [this one](https://www.youtube.com/watch?v=bSArWLXCZdo) 
 
+![Horizontal design complete](img/horizontal_complete.jpg) 
+
 ## Coilgun Designs
 
 Coil winding cross sections are 15mm (coil length) x 7mm (inner radius 8mm, outer radius 15mm), leading to around 350 turns for 0.5mm wire diameter which results in an inductance of approximately 1mH.
