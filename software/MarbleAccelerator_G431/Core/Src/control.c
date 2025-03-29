@@ -49,8 +49,9 @@ typedef enum {
 	ctrl_sm_state_startup = 0,
 	ctrl_sm_state_curroffs = 1,
 	ctrl_sm_state_ready = 3,
-	ctrl_sm_state_ccon = 4,
-	ctrl_sm_state_off = 5,
+	ctrl_sm_state_vcon = 4,
+	ctrl_sm_state_ccon = 5,
+	ctrl_sm_state_off = 6,
 	ctrl_sm_state_error = 8
 } ctrl_sm_states_t;
 
@@ -128,7 +129,8 @@ typedef enum {
 
 typedef enum {
 	sens_cmd_none = 0,
-	sens_cmd_reset = 1
+	sens_cmd_reset = 1,
+	sens_cmd_trigger = 2 //for manual triggering
 }
 sensor_cmd_t;
 
@@ -192,10 +194,22 @@ void control_sm_to_error(void){
 	pwm_setrefint_3ph_tim1(refs);
 }
 
+void control_sm_to_vcon_mode(void){
+	myctrl.ua = 0;
+	myctrl.ub = 0;
+	myctrl.uc = 0;
+	myctrl.state = ctrl_sm_state_vcon;
+	int16_t refs[3] = {0,0,0};
+	pwm_setrefint_3ph_tim1(refs);
+	LL_TIM_EnableAllOutputs(TIM1); //PWM on
+}
+
 void control_sm_to_ccon_mode(void){
-	//Transfer to pos mode, do initialization
+	//Transfer to ccon mode, do initialization of controllers
 	myctrl.pi_a.i_val = 0;
+#ifndef SINGLECOIL_DESIGN
 	myctrl.pi_b.i_val = 0;
+#endif
 	myctrl.ctrl_sm_cnt = 0;
 	myctrl.state = ctrl_sm_state_ccon;
 	int16_t refs[3] = {0,0,0};
@@ -284,10 +298,14 @@ void control_sm(void){
 
 void sens_eval(void){
 	if( mysensor.state == sens_state_wft){
-		mysensor.cmd = sens_cmd_none;
 		mysensor.cnt = 0;
 		if(myctrl.poti < mysensor.level-mysensor.hyst){
 			mysensor.state = sens_state_run;
+		}
+		if(mysensor.cmd == sens_cmd_trigger){
+			mysensor.cmd = sens_cmd_none;
+			mysensor.cnt = 0;
+			mysensor.state = sens_state_rdy;
 		}
 	}
 	else if( mysensor.state == sens_state_run){
@@ -313,6 +331,7 @@ void sens_eval(void){
 	else if( mysensor.state == sens_state_rdy){
 		mysensor.cnt++;
 		if(mysensor.cmd == sens_cmd_reset){
+			mysensor.cmd = sens_cmd_none;
 			mysensor.state = sens_state_wft;
 		}
 	}
@@ -333,10 +352,10 @@ void control_init(void){
 	//Current controllers
 	myctrl.pi_a.kp = 0.5 * 4*256;     // 0.5V/A
 	myctrl.pi_a.ki = 0.1 * 16*256;    // 0.1V/(A*Ts) = 1.6V/(A*ms) (for Ts = 0.0625ms)
-
+#ifndef SINGLECOIL_DESIGN
 	myctrl.pi_b.kp = 0.5 * 4*256;     // 0.5V/A
 	myctrl.pi_b.ki = 0.1 * 16*256;    // 0.1V/(A*Ts) = 1.6V/(A*ms) (for Ts = 0.0625ms)
-
+#endif
 	myctrl.iaref = 0;
 	myctrl.ibref = 0;
 
@@ -413,7 +432,7 @@ void control_pwm_ctrl(void){
 	myctrl.ic = interp_linearTrsfm_i16(&calib_data.ic, ic_raw);
 
 	// *** Error handling ***
-	if(myctrl.state == ctrl_sm_state_ccon){
+	if(myctrl.state == ctrl_sm_state_ccon || myctrl.state == ctrl_sm_state_vcon){
 		//signal over- / undervoltage and overcurrent
 		if(  (myctrl.ia > calib_data.imax)  ||  (myctrl.ia < -calib_data.imax)   )  {
 			myctrl.error = ctrl_errors_overcurrent;
@@ -439,13 +458,10 @@ void control_pwm_ctrl(void){
 
 	// vbus inverse calculation
 	int16_t vbus = myctrl.vbus;
-	if( vbus < (5<<8) ) {
+	if( vbus < (5<<8) ) {   //minimum 5V for inverse calculation
 		vbus = (5<<8);
 	}
-	if( vbus > (40<<8) ){
-		vbus = (40<<8);
-	}
-	myctrl.divVbus = 8388608/vbus;
+	myctrl.divVbus = 8388608/vbus;   //2^23  (.vbus is Q7.8, .divVbus is Q0.15)
 
 	sens_eval();
 
@@ -479,20 +495,31 @@ void control_pwm_ctrl(void){
 		//Current Controllers
 		myctrl.pi_a.max = myctrl.vbus;
 		myctrl.pi_a.min = -myctrl.vbus;
+#ifndef SINGLECOIL_DESIGN
 		myctrl.pi_b.max = myctrl.vbus;
 		myctrl.pi_b.min = -myctrl.vbus;
+#endif
+
+#ifdef SINGLECOIL_DESIGN
+		myctrl.ua = (control_pictrl_i16(&myctrl.pi_a,myctrl.iaref,myctrl.ia) );
+		myctrl.uc = -myctrl.ua;
+#else
 
 		myctrl.ua = control_pictrl_i16(&myctrl.pi_a,myctrl.iaref,myctrl.ia);
 		myctrl.ub = control_pictrl_i16(&myctrl.pi_b,myctrl.ibref,myctrl.ib);
 		myctrl.uc = 0;
-	}
 
-	//Symmetrizing
-	int32_t uavg = (myctrl.ua + myctrl.ub + myctrl.uc) / 3;
-	int16_t uavg16 = (int16_t)uavg;
-	myctrl.ua -= uavg16;
-	myctrl.ub -= uavg16;
-	myctrl.uc -= uavg16;
+		//Symmetrizing
+		int32_t uavg = (myctrl.ua + myctrl.ub + myctrl.uc) / 3;
+		int16_t uavg16 = (int16_t)uavg;
+		myctrl.ua -= uavg16;
+		myctrl.ub -= uavg16;
+		myctrl.uc -= uavg16;
+#endif
+	}
+	else {
+		myctrl.ua = myctrl.ub = myctrl.uc = 0;
+	}
 
 	int32_t tmpref = (myctrl.ua*myctrl.divVbus) >> 8;  //Q7.8 * Q0.15 >> 8 = ???
 	if(tmpref > 32767) tmpref = 32767;
