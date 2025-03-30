@@ -67,21 +67,35 @@ Ia_FIT,z_FIT = np.meshgrid(Ia_fit, z_fit)
 Eco_FIT, F_FIT, _, _, _ = magnetics_model((Ia_FIT,z_FIT), *popt) 
 
 fig = plt.figure()
-ax = fig.add_subplot(projection='3d')
+
+if (plottype<10):
+    ax = fig.add_subplot(projection='3d')
+else:
+    ax = fig.add_subplot()
+
 
 if (plottype == 0):
     ax.scatter(Ia, z*1000, Eco)
     ax.plot_surface(Ia_FIT,z_FIT*1000, Eco_FIT, alpha=0.5) 
     ax.set_zlabel('$E_\mathrm{co} / Ws$') 
+    ax.set_xlabel('$I_\mathrm{a} / A$') 
+    ax.set_ylabel('$z / mm$') 
     
 if (plottype == 1):
     ax.scatter(Ia, z*1000, F)
     ax.plot_surface(Ia_FIT,z_FIT*1000, F_FIT, alpha=0.5) 
-    ax.set_zlabel('$F_z / N$') 
+    ax.set_zlabel('$F_z / N$')
+    ax.set_xlabel('$I_\mathrm{a} / A$') 
+    ax.set_ylabel('$z / mm$') 
+
+if (plottype == 11):
+    ax.plot(z_FIT*1000,F_FIT)
+    ax.set_xlabel('$z / mm$') 
+    ax.set_ylabel('$F_z / N$') 
 
 
-ax.set_xlabel('$I_\mathrm{a} / A$') 
-ax.set_ylabel('$z / mm$') 
+
+
 
 plt.show()
 
