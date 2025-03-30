@@ -33,7 +33,7 @@ Lmin =  1.29e-3;  #Inductance (for marble out of coil)
 d =       0.396;  #Relative increase of inductance (for marble in middle of coil)
 z0 =  -10.51e-3;  #m
 zs =    9.60e-3;  #m 
-popt = [Lmin, d, z0, zs]
+pstart = [Lmin, d, z0, zs]
 
 
 fig = plt.figure()
@@ -46,6 +46,8 @@ z_fit = np.arange(-40,30,1) * 1e-3;
 
 Ia_FIT,z_FIT = np.meshgrid(Ia_fit, z_fit) 
 
+# Curve fitting 
+popt, pcov = curve_fit(func, (Ia, z), Eco, p0=pstart, bounds=([0.1e-3,0,-20e-3,1e-3],[10e-3,1,20e-3,20e-3])) 
 
 Z_FIT = func((Ia_FIT,z_FIT), *popt) 
 
@@ -56,18 +58,4 @@ ax.set_ylabel('Y')
 ax.set_zlabel('Z') 
 plt.show()
 
-
-# Perform curve fitting 
-#popt, pcov = curve_fit(func, (x, y), z) 
-
-
-
-
-
-
   
-    
-    
-    
-
-
