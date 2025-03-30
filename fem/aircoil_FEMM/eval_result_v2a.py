@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
+plottype = 0
 
 def magnetics_model(iz, Lmin, d, z0, zs): 
     i, z = iz 
@@ -67,13 +68,21 @@ Eco_FIT, F_FIT, _, _, _ = magnetics_model((Ia_FIT,z_FIT), *popt)
 
 fig = plt.figure()
 ax = fig.add_subplot(projection='3d')
-ax.scatter(Ia, z*1000, Eco)
 
-#ax.plot_surface(Ia_FIT,z_FIT, Eco_FIT, color='red', alpha=0.5) 
-ax.plot_surface(Ia_FIT,z_FIT*1000, Eco_FIT, alpha=0.5) 
+if (plottype == 0):
+    ax.scatter(Ia, z*1000, Eco)
+    ax.plot_surface(Ia_FIT,z_FIT*1000, Eco_FIT, alpha=0.5) 
+    ax.set_zlabel('$E_\mathrm{co} / Ws$') 
+    
+if (plottype == 1):
+    ax.scatter(Ia, z*1000, F)
+    ax.plot_surface(Ia_FIT,z_FIT*1000, F_FIT, alpha=0.5) 
+    ax.set_zlabel('$F_z / N$') 
+
+
 ax.set_xlabel('$I_\mathrm{a} / A$') 
 ax.set_ylabel('$z / mm$') 
-ax.set_zlabel('$E_\mathrm{co}$') 
+
 plt.show()
 
   
