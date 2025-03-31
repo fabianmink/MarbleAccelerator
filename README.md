@@ -35,7 +35,7 @@ The advantage of the vertical design is that the marble is at a defined state (n
 ![FEM Simulation](img/FEMM_example.png)
 
 
-## Fitting of FEM results (Matlab)
+## Fitting of FEM results
 
 The fit is based on the following coenergy equation:
 
