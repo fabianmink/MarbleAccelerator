@@ -10,29 +10,35 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
-plottype = 0
+plottype = 1
 
 def magnetics_model(iz, Lmin, d, z0, zs): 
-    i, z = iz 
+    i, z = iz
     
     #Coenergy
-    Eco = (0.5*Lmin*i**2) * (1+d*np.exp(-(((z-z0)/zs)**2)))
+    Eco = (0.5*Lmin*i**2) * (1+d*np.exp(-0.5*(((z-z0)/zs)**2)))
     
     #Force
-    F =   (0.5*Lmin*i**2) * (  d*np.exp(-(((z-z0)/zs)**2))) * (-2*(z-z0)/zs) * 1/zs
+    F =   (0.5*Lmin*i**2) * (  d*np.exp(-0.5*(((z-z0)/zs)**2))) * (-1*(z-z0)/zs) * 1/zs
 
     #Flux linkage and inductance
-    Psi = Lmin*i *          (1+d*np.exp(-(((z-z0)/zs)**2)))
-    L =   Lmin *            (1+d*np.exp(-(((z-z0)/zs)**2)))
+    Psi = Lmin*i *          (1+d*np.exp(-0.5*(((z-z0)/zs)**2)))
+    L =   Lmin *            (1+d*np.exp(-0.5*(((z-z0)/zs)**2)))
 
     #dPsi / dz
-    dPsi_dz = Lmin*i *      (  d*np.exp(-(((z-z0)/zs)**2))) * (-2*(z-z0)/zs) * 1/zs;
+    dPsi_dz = Lmin*i *      (  d*np.exp(-0.5*(((z-z0)/zs)**2))) * (-1*(z-z0)/zs) * 1/zs;
     
     return (Eco, F, Psi, L, dPsi_dz)
 
 def Eco_model(iz, Lmin, d, z0, zs):
     mm = magnetics_model(iz, Lmin, d, z0, zs)
     return mm[0]
+
+def Fmax(i, Lmin, d, z0, zs): 
+    
+    Fmax = (0.5*Lmin*i**2) *  d*np.exp(-0.5) * 1/zs
+    
+    return Fmax
 
     
 #fem_data = np.genfromtxt('output_Ia_z.csv', delimiter=',')
@@ -46,18 +52,18 @@ F = fem_data[:,4];
 Eco = fem_data[:,5];
 
 
-#0.5mm diameter Test / Start parameters
-Lmin =  1.29e-3;  #Inductance (for marble out of coil)
-d =       0.396;  #Relative increase of inductance (for marble in middle of coil)
-z0 =  -10.51e-3;  #m
-zs =    9.60e-3;  #m 
+#Start parameters
+Lmin =   0.5e-3;  #Inductance (for marble out of coil)
+d =         0.4;  #Relative increase of inductance (for marble in middle of coil)
+z0 =   -10.0e-3;  #m
+zs =     7.0e-3;  #m 
 pstart = [Lmin, d, z0, zs]
 
 
 # Curve fitting 
 popt, pcov = curve_fit(Eco_model, (Ia, z), Eco, p0=pstart, bounds=([0.1e-3,0,-20e-3,1e-3],[10e-3,1,20e-3,20e-3])) 
 
-
+Lmin, d, z0, zs = popt
 
 Ia_fit = np.arange(-10,10,0.5);
 z_fit = np.arange(-40,30,1) * 1e-3;
@@ -65,6 +71,9 @@ z_fit = np.arange(-40,30,1) * 1e-3;
 Ia_FIT,z_FIT = np.meshgrid(Ia_fit, z_fit) 
 
 Eco_FIT, F_FIT, _, _, _ = magnetics_model((Ia_FIT,z_FIT), *popt) 
+
+Fmax_fit = Fmax(Ia_fit, *popt)
+Fmax_FIT,z_FIT = np.meshgrid(Fmax_fit, z_fit)     
 
 fig = plt.figure()
 
@@ -77,23 +86,28 @@ else:
 if (plottype == 0):
     ax.scatter(Ia, z*1000, Eco)
     ax.plot_surface(Ia_FIT,z_FIT*1000, Eco_FIT, alpha=0.5) 
-    ax.set_zlabel('$E_\mathrm{co} / Ws$') 
-    ax.set_xlabel('$I_\mathrm{a} / A$') 
-    ax.set_ylabel('$z / mm$') 
+    ax.set_zlabel('$E_\mathrm{co} / \mathrm{Ws}$') 
+    ax.set_xlabel('$I_\mathrm{a} / \mathrm{A}$') 
+    ax.set_ylabel('$z / \mathrm{mm}$') 
     
 if (plottype == 1):
     ax.scatter(Ia, z*1000, F)
     ax.plot_surface(Ia_FIT,z_FIT*1000, F_FIT, alpha=0.5) 
-    ax.set_zlabel('$F_z / N$')
+    ax.set_zlabel('$F_\mathrm{z} / \mathrm{N}')
     ax.set_xlabel('$I_\mathrm{a} / A$') 
-    ax.set_ylabel('$z / mm$') 
+    ax.set_ylabel('$z / \mathrm{mm}$') 
 
 if (plottype == 11):
     ax.plot(z_FIT*1000,F_FIT)
-    ax.set_xlabel('$z / mm$') 
-    ax.set_ylabel('$F_z / N$') 
+    #ax.plot(z_FIT*1000,Fmax_FIT)
+    #ax.plot((z0-zs) * np.array([1, 1])*1000, np.array([-1, 1]))
+    ax.set_xlabel('$z / \mathrm{mm}$') 
+    ax.set_ylabel('$F_\mathrm{z} / \mathrm{N}$') 
 
-
+if (plottype == 12):
+    ax.plot(Ia_fit,Fmax_fit)
+    ax.set_xlabel('$I_\mathrm{a} / \mathrm{A}$') 
+    ax.set_ylabel('$F_\mathrm{z,max} / \mathrm{N}$')     
 
 
 
