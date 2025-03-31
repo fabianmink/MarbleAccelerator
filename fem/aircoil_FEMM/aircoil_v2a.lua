@@ -20,9 +20,9 @@ zm_step = 1 --must not be zero, even if min and max are identical; otherwise inf
 --Geometry (for 0.5mm Wire diameter)
 l_coil = 15   --coil length
 l_sep = 6 --seperator length - distance between 2 coils
-ri = 8 --coil inner radius
-ro = 14 --coil outer radius
-Ncoil = 298 --number of turns per coil 
+ri = 8.4 --coil inner radius
+ro = 16 --coil outer radius
+Ncoil = 180 --number of turns per coil 
 
 rm = 12.7/2  --marble radius
 
