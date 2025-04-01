@@ -51,6 +51,8 @@ i.e.:
 
 - Flux derivative: $\frac{\partial \Psi}{\partial z} = \frac{\partial^2 E_{\mathrm{Co}}}{\partial I \partial z} = - L_\mathrm{min} \cdot I \cdot \left[ d \cdot \exp \left( -0.5 \cdot \left( \frac{z - z_0}{z_\mathrm{s}} \right)^2 \right) \right] \cdot \frac{z - z_0}{z^2_\mathrm{s}}$ (needed for induced voltage calculation)
 
+- Maximum force for given current occurs at the inflection points of $E_{\mathrm{Co}}$, i.e. at $z = z_0 \pm z_\mathrm{s}$: $F_\mathrm{z,max} \left( I \right)= \frac{1}{2}  \cdot L_\mathrm{min} \cdot I^2 \cdot d \cdot \exp \left( -0.5 \right) \cdot \frac{1}{z_\mathrm{s}}$
+
 Resulting examplary fitted force:
 
 ![Force Fit](img/force_fitting.png)

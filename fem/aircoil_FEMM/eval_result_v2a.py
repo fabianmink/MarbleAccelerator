@@ -74,7 +74,9 @@ Ia_FIT,z_FIT = np.meshgrid(Ia_fit, z_fit)
 Eco_FIT, F_FIT, _, _, _ = magnetics_model((Ia_FIT,z_FIT), *popt) 
 
 Fmax_fit = Fmax(Ia_fit, *popt)
-Fmax_FIT,z_FIT = np.meshgrid(Fmax_fit, z_fit)     
+#Fmax_FIT,z_FIT = np.meshgrid(Fmax_fit, z_fit)     
+z_Fmax = Ia_fit*0 + z0 - zs;
+z_Fmax_neg = Ia_fit*0 + z0 + zs;
 
 fig = plt.figure()
 
@@ -92,8 +94,11 @@ if (plottype == 0):
     ax.set_ylabel('$z / \mathrm{mm}$') 
     
 if (plottype == 1):
-    ax.scatter(Ia, z*1000, F)
+    #ax.scatter(Ia, z*1000, F, marker='x', color='k')
+    ax.plot(Ia, z*1000, F, 'k.', ms=4)
     ax.plot_surface(Ia_FIT,z_FIT*1000, F_FIT, alpha=0.5, cmap=cm.hsv) 
+    ax.plot(Ia_fit,z_Fmax*1000,Fmax_fit,'r-')
+    ax.plot(Ia_fit,z_Fmax_neg*1000,-Fmax_fit,'b-')
     ax.set_zlabel('$F_\mathrm{z} / \mathrm{N}$')
     ax.set_xlabel('$I_\mathrm{a} / A$') 
     ax.set_ylabel('$z / \mathrm{mm}$') 
@@ -114,6 +119,7 @@ if (plottype == 12):
     ax.set_ylabel('$F_\mathrm{z,max} / \mathrm{N}$')     
 
 
+ax.set_position([0,0,1,1])
 
 plt.show()
 
