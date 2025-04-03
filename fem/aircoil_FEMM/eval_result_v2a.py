@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from scipy.optimize import curve_fit
 
-plottype = 1
+plottype = 12
 
 def magnetics_model(iz, Lmin, d, z0, zs): 
     i, z = iz
@@ -119,7 +119,7 @@ if (plottype == 12):
     ax.set_ylabel('$F_\mathrm{z,max} / \mathrm{N}$')     
 
 
-ax.set_position([0,0,1,1])
+#ax.set_position([0,0,1,1])
 
 plt.show()
 
