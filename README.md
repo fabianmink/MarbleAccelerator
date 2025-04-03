@@ -30,6 +30,12 @@ The design is intended to be used with Vishay CNY70 optical sensor for marble de
 
 The advantage of the vertical design is that the marble is at a defined state (no movement, $v_\mathrm{z} = 0$) at the beginning. This makes the accelerator parameters easier to tune, as the current level and duration of the current pulse are always the same.
 
+
+## Coil winding
+For an operating voltage of 24V, suitable wire diameters are in the range of 0.5mm ... 0.75mm.
+
+![coil winding machine](img/coil_winding.jpg)
+
 ## FEM Simulation (FEMM)
 
 ![FEM Simulation](img/FEMM_example.png)
