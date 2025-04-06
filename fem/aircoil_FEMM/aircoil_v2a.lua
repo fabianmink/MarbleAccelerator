@@ -1,18 +1,18 @@
 --this simulation is for 3D-printed coil carrier, v2a
 
 --coil a current
-Icoil_a_min = -10 
-Icoil_a_max = 10
-Icoil_a_step = 2.5 --must not be zero, even if min and max are identical; otherwise infinite loop
+Icoil_a_min = -20 
+Icoil_a_max = 20
+Icoil_a_step = 10 --must not be zero, even if min and max are identical; otherwise infinite loop
 
 --coil b current 
-Icoil_b_min = 0 
-Icoil_b_max = 0
-Icoil_b_step = 1 --must not be zero, even if min and max are identical; otherwise infinite loop
+Icoil_b_min = -20 
+Icoil_b_max = 20
+Icoil_b_step = 10 --must not be zero, even if min and max are identical; otherwise infinite loop
 
 zm_min = -40
 zm_max = 30
-zm_step = 1 --must not be zero, even if min and max are identical; otherwise infinite loop
+zm_step = 2 --must not be zero, even if min and max are identical; otherwise infinite loop
 
 --zm = -50       --marble z position totally out of coils
 --zm = -10.5       --marble z position middle of coil a
