@@ -24,6 +24,7 @@
  */
 
 #include "control.h"
+#include "datarec.h"
 #define PWM_MAX 2500
 
 //Power stage
@@ -39,80 +40,10 @@ static calib_data_t calib_data = {
 		.umax = 25 *256    //25V
 };
 
-
-void datarec_sm(void);
 //void can_init(void);
 //void can_sm(void);
 
-
-typedef enum {
-	ctrl_sm_state_startup = 0,
-	ctrl_sm_state_curroffs = 1,
-	ctrl_sm_state_ready = 3,
-	ctrl_sm_state_vcon = 4,
-	ctrl_sm_state_ccon = 5,
-	ctrl_sm_state_off = 6,
-	ctrl_sm_state_error = 8
-} ctrl_sm_states_t;
-
-
-typedef enum {
-	ctrl_sm_cmd_none = 0,
-	ctrl_sm_cmd_start = 1,
-	ctrl_sm_cmd_stop = 2
-} ctrl_sm_cmd_t;
-
-typedef enum {
-	ctrl_errors_none = 0,
-	ctrl_errors_overcurrent = 1,
-	ctrl_errors_overvoltage = 2,
-	ctrl_errors_undervoltage = 3,
-	ctrl_errors_adc = 4,
-	ctrl_errors_other = 5
-} ctrl_errors_t;
-
-typedef struct{
-	uint8_t ticks;
-	uint8_t ticks_per_ms;
-	uint16_t ms;
-	uint32_t s;
-}
-clock_data_t;
-
-//Control data struct
-typedef struct{
-	int16_t ia;       //int16, Q7.8
-	int16_t ib;       //int16, Q7.8
-	int16_t ic;       //int16, Q7.8
-	int16_t ua;       //int16, Q7.8, can be -vbus/2 ... vbus/2
-	int16_t ub;       //int16, Q7.8, can be -vbus/2 ... vbus/2
-	int16_t uc;       //int16, Q7.8, can be -vbus/2 ... vbus/2
-	int16_t vbus;     //int16, Q7.8
-	int16_t divVbus;  //int16, Q0.15
-	int16_t pwmrefa;  //int16, Q0.15
-	int16_t pwmrefb;  //int16, Q0.15
-	int16_t pwmrefc;  //int16, Q0.15
-	int16_t iaref;    //int16, Q7.8
-	int16_t ibref;    //int16, Q7.8
-	int16_t poti;
-	control_pictrl_i16_t pi_a;
-	control_pictrl_i16_t pi_b;
-	bool button_pressed;  //indicate a button press
-	bool trigger_in;      //indicate input (currently unused)
-	uint32_t ctrl_sm_cnt;
-	ctrl_sm_states_t state;
-	ctrl_sm_cmd_t cmd;
-	ctrl_errors_t error;
-	int32_t ia_offs_sum;
-	int32_t ib_offs_sum;
-	int32_t ic_offs_sum;
-	uint32_t timCnt_ctrl_begin;  //counter value at beginning of control routine
-	uint32_t timCnt_ctrl_check;  //counter value at checkpoint in control routine
-	uint32_t timCnt_ctrl_end;    //counter value at end of control routine
-	clock_data_t clock;
-} ctrl_data_t;
-
-static ctrl_data_t myctrl;
+ctrl_data_t myctrl;
 
 typedef enum {
 	sens_state_wft = 0,
@@ -584,63 +515,6 @@ void control_pwm_ctrl(void){
 
 	//Endpoint for timing
 	myctrl.timCnt_ctrl_end = TIM1->CNT;
-}
-
-
-// **** Code related to Data Recording ****
-#define BUFLEN 400 //Buffer length
-#define CYCLEDIV 4 //cycle div
-
-typedef enum {
-	datarec_state_startup = 0,
-	datarec_state_wft = 1,
-	datarec_state_rec = 2,
-	datarec_state_rdy = 3
-} datarec_states_t;
-
-
-static struct{
-	int16_t ia_buf[BUFLEN];
-	int16_t ib_buf[BUFLEN];
-	int16_t ic_buf[BUFLEN];
-	int16_t ua_buf[BUFLEN];
-	int16_t vbus_buf[BUFLEN];
-} myDataRecData;
-
-
-static int i_elecnt = 0;
-static int dataRecTrig = 0;
-static datarec_states_t myDataRecState = datarec_state_startup;
-
-void datarec_sm(void){
-	if(myDataRecState == datarec_state_startup){
-		myDataRecState = datarec_state_wft;
-	}
-	else if(myDataRecState == datarec_state_wft){
-		if(dataRecTrig){
-			i_elecnt = 0;
-			myDataRecState = datarec_state_rec;
-		}
-	}
-	else if(myDataRecState == datarec_state_rec){
-		//store debug data to buffers
-		int i_elecnt_dn = i_elecnt / CYCLEDIV;
-		myDataRecData.ia_buf[i_elecnt_dn] = myctrl.ia;
-		myDataRecData.ib_buf[i_elecnt_dn] = myctrl.ib;
-		myDataRecData.ic_buf[i_elecnt_dn] = myctrl.ic;
-		myDataRecData.ua_buf[i_elecnt_dn] = myctrl.ua;
-		myDataRecData.vbus_buf[i_elecnt_dn] = myctrl.vbus;
-
-		i_elecnt++;
-		if(i_elecnt/CYCLEDIV >= BUFLEN) {
-			myDataRecState = datarec_state_rdy;
-		}
-	}
-	else if(myDataRecState == datarec_state_rdy){
-		if(dataRecTrig == 0){ //wait for manual restart (use debugger!!)
-			myDataRecState = datarec_state_wft;
-		}
-	}
 }
 
 

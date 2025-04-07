@@ -59,11 +59,13 @@ static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 extern void FDCAN_Config(void);
 extern void control_init(void);
+extern void datarec_init(void);
+extern void datarec_printResults(UART_HandleTypeDef *huart);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t testdata[15] = "Hello, World!\r\n";
+
 /* USER CODE END 0 */
 
 /**
@@ -140,6 +142,7 @@ int main(void)
   //FDCAN_Config();
 
   control_init();
+  datarec_init();
 
   /* USER CODE END 2 */
 
@@ -152,7 +155,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	HAL_UART_Transmit_IT(&huart2, testdata, 15);
+	datarec_printResults(&huart2);
 	HAL_Delay(1000);
   }
   /* USER CODE END 3 */
