@@ -265,6 +265,7 @@ void sensor_calculation(void){
 		if(mysensor.pos > mysensor.trigpos){
 			mysensor.cnt = 0;
 			mysensor.state = sens_state_rdy;
+			datarec_trigger();
 		}
 	}
 	else if( mysensor.state == sens_state_rdy){

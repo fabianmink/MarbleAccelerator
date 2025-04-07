@@ -34,7 +34,7 @@ static int16_t ic_buf[BUFLEN];
 static int16_t ua_buf[BUFLEN];
 static int16_t ub_buf[BUFLEN];
 static int16_t uc_buf[BUFLEN];
-static int16_t vbus_buf[BUFLEN];
+static int16_t udc_buf[BUFLEN];
 
 static datarec_dataElement_t ele_ia = {
 		.name = "ia",
@@ -48,11 +48,46 @@ static datarec_dataElement_t ele_ib = {
 		.pdata = ib_buf
 };
 
+static datarec_dataElement_t ele_ic = {
+		.name = "ic",
+		.cnt = BUFLEN,
+		.pdata = ic_buf
+};
+
+static datarec_dataElement_t ele_ua = {
+		.name = "ua",
+		.cnt = BUFLEN,
+		.pdata = ua_buf
+};
+
+static datarec_dataElement_t ele_ub = {
+		.name = "ub",
+		.cnt = BUFLEN,
+		.pdata = ub_buf
+};
+
+static datarec_dataElement_t ele_uc = {
+		.name = "uc",
+		.cnt = BUFLEN,
+		.pdata = uc_buf
+};
+
+static datarec_dataElement_t ele_udc = {
+		.name = "udc",
+		.cnt = BUFLEN,
+		.pdata = udc_buf
+};
+
 static datarec_dataList_t myList = {
-		.cnt = 2,
+		.cnt = 7,
 		.elements = {
 				[0] = &ele_ia,
 				[1] = &ele_ib,
+				[2] = &ele_ic,
+				[3] = &ele_ua,
+				[4] = &ele_ub,
+				[5] = &ele_uc,
+				[6] = &ele_udc,
 		}
 };
 
@@ -64,6 +99,7 @@ typedef struct{
 	int cntData;
 	int cntDowncycle;
 	bool trigger;
+	bool resultsRead;
 } datarec_t;
 
 
@@ -97,20 +133,22 @@ void datarec_sm(void){
 			ua_buf[myDatarec.cntData] = myctrl.ua;
 			ub_buf[myDatarec.cntData] = myctrl.ub;
 			uc_buf[myDatarec.cntData] = myctrl.uc;
-			vbus_buf[myDatarec.cntData] = myctrl.vbus;
+			udc_buf[myDatarec.cntData] = myctrl.vbus;
 
 			myDatarec.cntDowncycle=myDatarec.downcycle;
 			myDatarec.cntData++;
 
 			if(myDatarec.cntData >= BUFLEN) {
 				myDatarec.state = datarec_state_rdy;
+				myDatarec.resultsRead = 0;
 			}
 		}
 
 	}
 	else if(myDatarec.state == datarec_state_rdy){
-		if(myDatarec.trigger == 0){ //wait for manual restart (use debugger!!)
+		if(myDatarec.resultsRead == 1){
 			myDatarec.state = datarec_state_wft;
+			myDatarec.trigger = 0;
 		}
 	}
 }
@@ -130,6 +168,15 @@ static void datarec_printstr(UART_HandleTypeDef *huart, char *str){
 	datarec_print(huart, (uint8_t*)str, len);
 }
 
+void datarec_trigger(void){
+	myDatarec.trigger = 1;
+}
+
+int datarec_isNewData(void){
+	if( (myDatarec.state == datarec_state_rdy) && (myDatarec.resultsRead == 0) ) return(1);
+	return(0);
+}
+
 void datarec_printResults(UART_HandleTypeDef *huart){
 	datarec_printstr(huart, "{");
 
@@ -138,8 +185,8 @@ void datarec_printResults(UART_HandleTypeDef *huart){
 		datarec_dataElement_t* ele = myList.elements[listidx];
 		eleName = ele->name;
 
-		if(listidx > 0)	datarec_printstr(huart, "],\r\n\"");
-		else datarec_printstr(huart, "\r\n\"");
+		if(listidx > 0)	datarec_printstr(huart, "],\"");
+		else datarec_printstr(huart, "\"");
 
 		datarec_printstr(huart, eleName);
 		datarec_printstr(huart, "\": [");
@@ -152,5 +199,7 @@ void datarec_printResults(UART_HandleTypeDef *huart){
 			datarec_printstr(huart, sval);
 		}
 	}
-	datarec_printstr(huart, "]\r\n}\r\n");
+	datarec_printstr(huart, "]}\r\n");
+
+	myDatarec.resultsRead = 1;
 }
