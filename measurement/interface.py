@@ -20,6 +20,7 @@ def on_close(event):
     
 
 def thread_function():
+    global do_exit
     global data
     global sema_newData, sema_dataRead
     
@@ -43,7 +44,6 @@ def thread_function():
             sema_newData.release()
             
     ser.close()
-       
     
     
     
@@ -55,23 +55,31 @@ fig.canvas.mpl_connect('close_event', on_close)
 t = np.linspace(0.00, 800*62.5e-3, 800)
 
 
-line_ia,  = ax_i.plot(t,t, 'r-', linewidth=0.5);
-line_ib,  = ax_i.plot(t,t, 'g-', linewidth=0.5);
-line_ic,  = ax_i.plot(t,t, 'b-', linewidth=0.5);
+line_ia,  = ax_i.plot(t,0*t, 'r-', linewidth=0.5);
+line_ib,  = ax_i.plot(t,0*t, 'g-', linewidth=0.5);
+line_ic,  = ax_i.plot(t,0*t, 'b-', linewidth=0.5);
 
+ax_i.set_xlim(0, 50)
 ax_i.set_ylim(-20, 20)
+ax_i.grid(1)
+ax_i.set_xlabel("$t  /  \mathrm{ms}$")
+ax_i.set_ylabel("$i  /  \mathrm{A}$")
 
-line_ua,  = ax_u.plot(t,t, 'r-', linewidth=0.5);
-line_ub,  = ax_u.plot(t,t, 'g-', linewidth=0.5);
-line_uc,  = ax_u.plot(t,t, 'b-', linewidth=0.5);
+line_ua,  = ax_u.plot(t,0*t, 'r-', linewidth=0.5);
+line_ub,  = ax_u.plot(t,0*t, 'g-', linewidth=0.5);
+line_uc,  = ax_u.plot(t,0*t, 'b-', linewidth=0.5);
 
-line_udc,  = ax_u.plot(t,t, 'k-', linewidth=0.5);
+line_udc,  = ax_u.plot(t,0*t, 'k-', linewidth=0.5);
 
+ax_u.set_xlim(0, 50)
 ax_u.set_ylim(-20, 20)
+ax_u.grid(1)
+ax_u.set_xlabel("$t  /  \mathrm{ms}$")
+ax_u.set_ylabel("$u  /  \mathrm{V}$")
 
 
-x = threading.Thread(target=thread_function)
-#x = threading.Thread(target=thread_function, daemon=True)
+#x = threading.Thread(target=thread_function)
+x = threading.Thread(target=thread_function, daemon=True)
 x.start()
 
 while (not do_exit):
