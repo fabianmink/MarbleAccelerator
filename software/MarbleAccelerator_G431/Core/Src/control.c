@@ -239,12 +239,19 @@ void sensor_calculation(void){
 	if( mysensor.state == sens_state_wft){
 		mysensor.cnt = 0;
 		if(myctrl.poti < mysensor.level-mysensor.hyst){
+			mysensor.cnt = 0;
+			mysensor.pos = 0;
+#ifndef SINGLECOIL_DESIGN
 			mysensor.state = sens_state_run;
+#else
+			mysensor.state = sens_state_fly;
+#endif
 		}
 		if(mysensor.cmd == sens_cmd_trigger){
 			mysensor.cmd = sens_cmd_none;
 			mysensor.cnt = 0;
-			mysensor.state = sens_state_rdy;
+			mysensor.pos = 0;
+			mysensor.state = sens_state_fly;
 		}
 	}
 	else if( mysensor.state == sens_state_run){
@@ -312,6 +319,8 @@ void control_init(void){
 	myctrl.clock.s = 0;
 
 	//Sensor init
+#ifndef SINGLECOIL_DESIGN
+	mysensor.trigpos = 1000000;
 	mysensor.cnt_starta = 0;
 	mysensor.cnt_stopa = 250; //12.5*16;  //12.5ms
 	mysensor.iaval = 3500; //11.7*256;     //11.7A
@@ -319,11 +328,21 @@ void control_init(void){
 	mysensor.cnt_startb = 200; //12.5*16; //12.5ms
 	mysensor.cnt_stopb = 550; //50*16;    //50ms
 	mysensor.ibval = -4000; //16.4*256;     //16.4A
+#else
+	mysensor.trigpos = 8000;
+	mysensor.cnt_starta = 10;
+	mysensor.cnt_stopa =  470;  //even higher with 500
+	mysensor.iaval = 3300;
+
+	mysensor.cnt_startb = 0;
+	mysensor.cnt_stopb = 16000;
+	mysensor.ibval = 0; //16.4*256;     //16.4A
+#endif
 
 	mysensor.cnt = 0;
-	mysensor.spd = 0;
+	mysensor.spd = 1;
 	mysensor.pos = 0;
-	mysensor.trigpos = 1000000;
+
 	mysensor.level = 3500;
 	mysensor.hyst = 100;
 	mysensor.state = sens_state_wft;
