@@ -1,17 +1,56 @@
 import serial
 import json
 import numpy as np
-#import time
+import time
+import threading
 from matplotlib import pyplot as plt 
 
-ser = serial.Serial('COM9')  # open serial port
-ser.baudrate = 256000
-#ser.timeout = 0.1
-print(ser.name)         # check which port was really used
+data = [];
+sema_newData = threading.Semaphore(0)  #0x (=not) available from startup
+sema_dataRead = threading.Semaphore(1) #1x available from startup
+do_exit = False;
 
-ser.flush()
+def on_close(event):
+    #print('Closed Figure!')
+    #plt.close('all')
+    global do_exit
+    print("close")
+    do_exit = True
+    event.canvas.stop_event_loop()
+    
+
+def thread_function():
+    global data
+    global sema_newData, sema_dataRead
+    
+    print("Starting")
+    time.sleep(2)
+
+    ser = serial.Serial('COM9')  # open serial port
+    ser.baudrate = 256000
+    #ser.timeout = 0.1
+    print(ser.name)         # check which port was really used
+    
+    ser.flush()
+    
+    while(not do_exit):
+        #print("Running")
+        line = ser.readline()
+        dataRead = sema_dataRead.acquire(False)
+        if(dataRead):
+            str = line.decode()
+            data = json.loads(str)    
+            sema_newData.release()
+            
+    ser.close()
+       
+    
+    
+    
+    
 
 fig, (ax_i, ax_u) = plt.subplots(2, 1)
+fig.canvas.mpl_connect('close_event', on_close)
 
 t = np.linspace(0.00, 800*62.5e-3, 800)
 
@@ -26,36 +65,46 @@ line_ua,  = ax_u.plot(t,t, 'r-', linewidth=0.5);
 line_ub,  = ax_u.plot(t,t, 'g-', linewidth=0.5);
 line_uc,  = ax_u.plot(t,t, 'b-', linewidth=0.5);
 
+line_udc,  = ax_u.plot(t,t, 'k-', linewidth=0.5);
+
 ax_u.set_ylim(-20, 20)
 
-plt.show()
 
-#while(True):
-#    time.sleep(1)
-line = ser.readline()
+x = threading.Thread(target=thread_function)
+#x = threading.Thread(target=thread_function, daemon=True)
+x.start()
 
-str = line.decode()
-#if(str != ''):
-x = json.loads(str)   
+while (not do_exit):
+    #check for new data
+    newData = sema_newData.acquire(False)
+    if(newData):
+        ia = np.array(data['ia'] )/256
+        ib = np.array(data['ib'] )/256
+        ic = np.array(data['ic'] )/256
 
-ia = np.array(x['ia'] )/256
-ib = np.array(x['ib'] )/256
-ic = np.array(x['ic'] )/256
+        ua = np.array(data['ua'] )/256
+        ub = np.array(data['ub'] )/256
+        uc = np.array(data['uc'] )/256
 
-ua = np.array(x['ua'] )/256
-ub = np.array(x['ub'] )/256
-uc = np.array(x['uc'] )/256
+        udc = np.array(data['udc'] )/256
+                
+        line_ia.set_ydata( ia );
+        line_ib.set_ydata( ib );
+        line_ic.set_ydata( ic );
 
-ucd = x['udc']
+        line_ua.set_ydata( ua );
+        line_ub.set_ydata( ub );
+        line_uc.set_ydata( uc );
 
-line_ia.set_ydata( ia );
-line_ib.set_ydata( ib );
-line_ic.set_ydata( ic );
+        line_udc.set_ydata( udc/2 );
+        
+        sema_dataRead.release()
+        
 
-line_ua.set_ydata( ua );
-line_ub.set_ydata( ub );
-line_uc.set_ydata( uc );
+    plt.pause(0.5)
+    
 
-fig.canvas.draw_idle()
+print("exit")
 
-ser.close()             # close port
+
+#              # close port
