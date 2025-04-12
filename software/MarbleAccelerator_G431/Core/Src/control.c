@@ -26,6 +26,7 @@
 #include "control.h"
 #include "datarec.h"
 #define PWM_MAX 2500
+#define PWMREF_MAX_CURRENTMEAS    28000    //Max PWM-reference duty cycle, where current measurement is still reliable
 
 //Power stage
 static calib_data_t calib_data = {
@@ -401,7 +402,33 @@ void control_pwm_ctrl(void){
 	int16_t ic_raw = (int16_t) LL_ADC_INJ_ReadConversionData12(ADC2, LL_ADC_INJ_RANK_2);
 	myctrl.ic = interp_linearTrsfm_i16(&calib_data.ic, ic_raw);
 
+
 	// *** Error handling ***
+
+	//If duty cycle is too high, current for respective phase was not measured reliably as current is
+	//flowing only through high side
+	if(myctrl.pwmrefa > PWMREF_MAX_CURRENTMEAS){
+		if((myctrl.pwmrefb > PWMREF_MAX_CURRENTMEAS)||(myctrl.pwmrefc > PWMREF_MAX_CURRENTMEAS)){
+			myctrl.error = ctrl_errors_currentmeas;
+			control_sm_to_error();
+		}
+		else {
+			myctrl.ia = -myctrl.ib - myctrl.ic;
+		}
+	}
+	else if(myctrl.pwmrefb > PWMREF_MAX_CURRENTMEAS){
+		if(myctrl.pwmrefc > PWMREF_MAX_CURRENTMEAS){
+			myctrl.error = ctrl_errors_currentmeas;
+			control_sm_to_error();
+		}
+		else {
+			myctrl.ib = -myctrl.ic - myctrl.ia;
+		}
+	}
+	else if(myctrl.pwmrefc > PWMREF_MAX_CURRENTMEAS){
+		myctrl.ic = -myctrl.ia - myctrl.ib;
+	}
+
 	if(myctrl.state == ctrl_sm_state_ccon || myctrl.state == ctrl_sm_state_vcon){
 		//signal over- / undervoltage and overcurrent
 		if(  (myctrl.ia > calib_data.imax)  ||  (myctrl.ia < -calib_data.imax)   )  {
@@ -425,6 +452,10 @@ void control_pwm_ctrl(void){
 			control_sm_to_error();
 		}
 	}
+
+
+
+
 
 	// vbus inverse calculation
 	int16_t vbus = myctrl.vbus;

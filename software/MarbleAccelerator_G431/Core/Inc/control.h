@@ -48,7 +48,8 @@ typedef enum {
 	ctrl_errors_overvoltage = 2,
 	ctrl_errors_undervoltage = 3,
 	ctrl_errors_adc = 4,
-	ctrl_errors_other = 5
+	ctrl_errors_currentmeas = 5,
+	ctrl_errors_other = 6
 } ctrl_errors_t;
 
 typedef struct{
