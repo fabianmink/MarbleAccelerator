@@ -26,7 +26,7 @@
 #include "control.h"
 #include "datarec.h"
 #define PWM_MAX 2500
-#define PWMREF_MAX_CURRENTMEAS    35000    //Max PWM-reference duty cycle, where current measurement is still reliable
+#define PWMREF_MAX_CURRENTMEAS    28000    //Max PWM-reference duty cycle, where current measurement is still reliable
 
 //Power stage
 static calib_data_t calib_data = {
@@ -287,7 +287,7 @@ void sensor_calculation(void){
 	else if( mysensor.state == sens_state_rdy){
 		int a_end, b_end;
 		a_end = pgenerator_lin_int16(&mysensor.pg_a, &mysensor.iaref);
-		b_end = pgenerator_lin_int16(&mysensor.pg_a, &mysensor.iaref);
+		b_end = pgenerator_lin_int16(&mysensor.pg_b, &mysensor.ibref);
 
 		if(a_end && b_end){
 			mysensor.cmd = sens_cmd_reset;
@@ -303,7 +303,7 @@ void sensor_calculation(void){
 
 void control_init(void){
 	//Current controllers init
-	myctrl.pi_a.kp = 0.25 * 4*256;     // 0.25V/A
+	myctrl.pi_a.kp = 0.5  * 4*256;     // 0.5V/A
 	myctrl.pi_a.ki = 0.05 * 16*256;    // 0.05V/(A*Ts) = 0.8V/(A*ms) (@Ts = 0.0625ms)
 #ifndef SINGLECOIL_DESIGN
 	myctrl.pi_b.kp = 0.25 * 4*256;     // 0.25V/A
@@ -351,9 +351,9 @@ void control_init(void){
 	mysensor.pg_a.deltapos[0] = 10;
 	mysensor.pg_a.val[1] = 0;
 	mysensor.pg_a.deltapos[1] = 0;
-	mysensor.pg_a.val[2] = 4500;
+	mysensor.pg_a.val[2] = 3800;
 	mysensor.pg_a.deltapos[2] = 450;
-	mysensor.pg_a.val[3] = 3500;
+	mysensor.pg_a.val[3] = 3200;
 	mysensor.pg_a.deltapos[3] = 0;
 	mysensor.pg_a.val[4] = 0;
 	mysensor.pg_a.deltapos[4] = 0;
