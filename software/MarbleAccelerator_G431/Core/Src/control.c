@@ -335,7 +335,7 @@ void control_init(void){
 	mysensor.pg_a.val[3] = 3500;
 	mysensor.pg_a.deltapos[3] = 10;
 	mysensor.pg_a.val[4] = 0;
-	mysensor.pg_a.deltapos[4] = 32000;
+	mysensor.pg_a.deltapos[4] = 8000;
 	mysensor.pg_a.numpos = 5;
 
 	mysensor.pg_b.val[0] = 0;
@@ -347,7 +347,7 @@ void control_init(void){
 	mysensor.pg_b.val[3] = -4000;
 	mysensor.pg_b.deltapos[3] = 10;
 	mysensor.pg_b.val[4] = 0;
-	mysensor.pg_b.deltapos[4] = 32000;
+	mysensor.pg_b.deltapos[4] = 8000;
 	mysensor.pg_b.numpos = 5;
 
 #else
