@@ -31,6 +31,9 @@ typedef struct {
 static int16_t ia_buf[BUFLEN];
 static int16_t ib_buf[BUFLEN];
 static int16_t ic_buf[BUFLEN];
+static int16_t iaref_buf[BUFLEN];
+static int16_t ibref_buf[BUFLEN];
+static int16_t icref_buf[BUFLEN];
 static int16_t ua_buf[BUFLEN];
 static int16_t ub_buf[BUFLEN];
 static int16_t uc_buf[BUFLEN];
@@ -53,6 +56,26 @@ static datarec_dataElement_t ele_ic = {
 		.cnt = BUFLEN,
 		.pdata = ic_buf
 };
+
+
+static datarec_dataElement_t ele_iaref = {
+		.name = "iaref",
+		.cnt = BUFLEN,
+		.pdata = iaref_buf
+};
+
+static datarec_dataElement_t ele_ibref = {
+		.name = "ibref",
+		.cnt = BUFLEN,
+		.pdata = ibref_buf
+};
+
+static datarec_dataElement_t ele_icref = {
+		.name = "icref",
+		.cnt = BUFLEN,
+		.pdata = icref_buf
+};
+
 
 static datarec_dataElement_t ele_ua = {
 		.name = "ua",
@@ -79,15 +102,18 @@ static datarec_dataElement_t ele_udc = {
 };
 
 static datarec_dataList_t myList = {
-		.cnt = 7,
+		.cnt = 10,
 		.elements = {
 				[0] = &ele_ia,
 				[1] = &ele_ib,
 				[2] = &ele_ic,
-				[3] = &ele_ua,
-				[4] = &ele_ub,
-				[5] = &ele_uc,
-				[6] = &ele_udc,
+				[3] = &ele_iaref,
+				[4] = &ele_ibref,
+				[5] = &ele_icref,
+				[6] = &ele_ua,
+				[7] = &ele_ub,
+				[8] = &ele_uc,
+				[9] = &ele_udc,
 		}
 };
 
@@ -130,6 +156,9 @@ void datarec_sm(void){
 			ia_buf[myDatarec.cntData] = myctrl.ia;
 			ib_buf[myDatarec.cntData] = myctrl.ib;
 			ic_buf[myDatarec.cntData] = myctrl.ic;
+			iaref_buf[myDatarec.cntData] = myctrl.iaref;
+			ibref_buf[myDatarec.cntData] = myctrl.ibref;
+			icref_buf[myDatarec.cntData] = 0;
 			ua_buf[myDatarec.cntData] = myctrl.ua;
 			ub_buf[myDatarec.cntData] = myctrl.ub;
 			uc_buf[myDatarec.cntData] = myctrl.uc;

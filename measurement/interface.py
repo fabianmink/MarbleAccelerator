@@ -69,25 +69,31 @@ fig.canvas.mpl_connect('close_event', on_close)
 t = np.linspace(0.00, 800*62.5e-3, 800)
 
 
-line_ia,  = ax_i.plot(t,0*t, 'r-', linewidth=0.5);
-line_ib,  = ax_i.plot(t,0*t, 'g-', linewidth=0.5);
-line_ic,  = ax_i.plot(t,0*t, 'b-', linewidth=0.5);
+line_ia,  = ax_i.plot(t,0*t, 'r-', linewidth=1);
+line_ib,  = ax_i.plot(t,0*t, 'g-', linewidth=1);
+line_ic,  = ax_i.plot(t,0*t, 'b-', linewidth=1);
+
+line_iaref,  = ax_i.plot(t,0*t, 'r:', linewidth=1);
+line_ibref,  = ax_i.plot(t,0*t, 'g:', linewidth=1);
+line_icref,  = ax_i.plot(t,0*t, 'b:', linewidth=1);
 
 ax_i.set_xlim(0, 50)
 ax_i.set_ylim(-20, 20)
 ax_i.grid(1)
+ax_i.set_xticks(np.arange(0, 50, step=2))
 ax_i.set_xlabel("$t  /  \mathrm{ms}$")
 ax_i.set_ylabel("$i  /  \mathrm{A}$")
 
-line_ua,  = ax_u.plot(t,0*t, 'r-', linewidth=0.5);
-line_ub,  = ax_u.plot(t,0*t, 'g-', linewidth=0.5);
-line_uc,  = ax_u.plot(t,0*t, 'b-', linewidth=0.5);
+line_ua,  = ax_u.plot(t,0*t, 'r-', linewidth=1);
+line_ub,  = ax_u.plot(t,0*t, 'g-', linewidth=1);
+line_uc,  = ax_u.plot(t,0*t, 'b-', linewidth=1);
 
-line_udc,  = ax_u.plot(t,0*t, 'k-', linewidth=0.5);
+line_udc,  = ax_u.plot(t,0*t, 'k-', linewidth=1);
 
 ax_u.set_xlim(0, 50)
 ax_u.set_ylim(-20, 20)
 ax_u.grid(1)
+ax_u.set_xticks(np.arange(0, 50, step=2))
 ax_u.set_xlabel("$t  /  \mathrm{ms}$")
 ax_u.set_ylabel("$u  /  \mathrm{V}$")
 
@@ -103,6 +109,10 @@ while (not do_exit):
         ia = np.array(data['ia'] )/256
         ib = np.array(data['ib'] )/256
         ic = np.array(data['ic'] )/256
+        
+        iaref = np.array(data['iaref'] )/256
+        ibref = np.array(data['ibref'] )/256
+        icref = np.array(data['icref'] )/256
 
         ua = np.array(data['ua'] )/256
         ub = np.array(data['ub'] )/256
@@ -113,6 +123,10 @@ while (not do_exit):
         line_ia.set_ydata( ia );
         line_ib.set_ydata( ib );
         line_ic.set_ydata( ic );
+        
+        line_iaref.set_ydata( iaref );
+        line_ibref.set_ydata( ibref );
+        line_icref.set_ydata( icref );
 
         line_ua.set_ydata( ua );
         line_ub.set_ydata( ub );
