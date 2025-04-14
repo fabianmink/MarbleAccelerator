@@ -5,10 +5,16 @@ import time
 import threading
 from matplotlib import pyplot as plt 
 
+global do_exit;
+global ser_open;
+global ser;
+
 data = [];
 sema_newData = threading.Semaphore(0)  #0x (=not) available from startup
 sema_dataRead = threading.Semaphore(1) #1x available from startup
+
 do_exit = False;
+ser_open = False;
 
 def on_close(event):
     #print('Closed Figure!')
@@ -23,32 +29,40 @@ def thread_function():
     global do_exit
     global data
     global sema_newData, sema_dataRead
+    global ser_open;
+    global ser;
     
     print("Starting")
-    time.sleep(2)
+    #time.sleep(2)
 
-    ser = serial.Serial('COM9')  # open serial port
-    ser.baudrate = 256000
-    #ser.timeout = 0.1
-    print(ser.name)         # check which port was really used
-    
-    ser.flush()
-    
+    ser_open = False
+    try:
+        ser = serial.Serial('COM9')  # open serial port
+        ser_open = True
+        ser.baudrate = 256000
+        #ser.timeout = 0.1
+        print(ser.name)         # check which port was really used
+        
+        ser.flush()
+        
+    except serial.serialutil.SerialException:
+        print("Serial Exeption")
+        do_exit = True
+        
     while(not do_exit):
         #print("Running")
-        line = ser.readline()
-        dataRead = sema_dataRead.acquire(False)
-        if(dataRead):
-            str = line.decode()
-            data = json.loads(str)    
-            sema_newData.release()
+        try:
+            line = ser.readline()
+            dataRead = sema_dataRead.acquire(False)
+            if(dataRead):
+                str = line.decode()
+                data = json.loads(str)    
+                sema_newData.release()
+        except json.decoder.JSONDecodeError:
+            print("Decode Exception")
             
-    ser.close()
-    
-    
-    
-    
-
+            
+     
 fig, (ax_i, ax_u) = plt.subplots(2, 1)
 fig.canvas.mpl_connect('close_event', on_close)
 
@@ -112,7 +126,9 @@ while (not do_exit):
     plt.pause(0.5)
     
 
+plt.close('all')
+if(ser_open):
+    ser.close()
+
 print("exit")
 
-
-#              # close port
