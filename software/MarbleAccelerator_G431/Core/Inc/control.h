@@ -3,8 +3,8 @@
 
 #include "main.h"
 
-#define SINGLECOIL_DESIGN
-#define CURRENT_B_WORKAROUND
+//#define SINGLECOIL_DESIGN
+//#define CURRENT_B_WORKAROUND
 
 #include <stdint.h>
 #include <stdbool.h>

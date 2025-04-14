@@ -71,12 +71,6 @@ typedef struct{
 	sensor_cmd_t cmd;
 	int16_t iaref;   //int16, Q7.8
 	int16_t ibref;   //int16, Q7.8
-//	int16_t iaval;   //int16, Q7.8
-//	int16_t ibval;   //int16, Q7.8
-//	uint32_t cnt_starta;
-//	uint32_t cnt_stopa;
-//	uint32_t cnt_startb;
-//	uint32_t cnt_stopb;
 	pgenerator_lin_int16_data_t pg_a;
 	pgenerator_lin_int16_data_t pg_b;
 } sensor_data_t;
@@ -331,17 +325,31 @@ void control_init(void){
 
 #ifndef SINGLECOIL_DESIGN
 	mysensor.trigpos = 1000000;
-	mysensor.cnt_starta = 0;
-	mysensor.cnt_stopa = 250; //12.5*16;  //12.5ms
-	mysensor.iaval = 3500; //11.7*256;     //11.7A
 
-	mysensor.pg_a.numpos = 0;
+	mysensor.pg_a.val[0] = 0;
+	mysensor.pg_a.deltapos[0] = 10;
+	mysensor.pg_a.val[1] = 0;
+	mysensor.pg_a.deltapos[1] = 20;
+	mysensor.pg_a.val[2] = 3500;     //11.7*256;     //11.7A
+	mysensor.pg_a.deltapos[2] = 250; //12.5*16;  //12.5ms
+	mysensor.pg_a.val[3] = 3500;
+	mysensor.pg_a.deltapos[3] = 10;
+	mysensor.pg_a.val[4] = 0;
+	mysensor.pg_a.deltapos[4] = 32000;
+	mysensor.pg_a.numpos = 5;
 
-	mysensor.cnt_startb = 200; //12.5*16; //12.5ms
-	mysensor.cnt_stopb = 550; //50*16;    //50ms
-	mysensor.ibval = -4000; //16.4*256;     //16.4A
+	mysensor.pg_b.val[0] = 0;
+	mysensor.pg_b.deltapos[0] = 210;
+	mysensor.pg_b.val[1] = 0;
+	mysensor.pg_b.deltapos[1] = 20;
+	mysensor.pg_b.val[2] = -4000;   //16.4*256;     //16.4A
+	mysensor.pg_b.deltapos[2] = 250;
+	mysensor.pg_b.val[3] = -4000;
+	mysensor.pg_b.deltapos[3] = 10;
+	mysensor.pg_b.val[4] = 0;
+	mysensor.pg_b.deltapos[4] = 32000;
+	mysensor.pg_b.numpos = 5;
 
-	mysensor.pg_b.numpos = 0;
 #else
 	mysensor.trigpos = 8000;
 //	mysensor.cnt_starta = 10;
