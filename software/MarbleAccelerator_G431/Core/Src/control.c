@@ -482,8 +482,13 @@ void control_pwm_ctrl(void){
 	// *** Current control ***
 	if( myctrl.state == ctrl_sm_state_ccon ){
 		//Current Controllers
+#ifndef CURRENT_B_WORKAROUND
 		myctrl.pi_a.max = myctrl.vbus/2;
 		myctrl.pi_a.min = -myctrl.vbus/2;
+#else
+		myctrl.pi_a.max = myctrl.vbus * 14 / 30;  //Workaround to avoid false current measurement in phase b
+		myctrl.pi_a.min = -myctrl.vbus * 14 / 30;
+#endif
 #ifndef SINGLECOIL_DESIGN
 		myctrl.pi_b.max = myctrl.vbus/2;
 		myctrl.pi_b.min = -myctrl.vbus/2;
