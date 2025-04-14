@@ -26,7 +26,7 @@
 #include "control.h"
 #include "datarec.h"
 #define PWM_MAX 2500
-#define PWMREF_MAX_CURRENTMEAS    28000    //Max PWM-reference duty cycle, where current measurement is still reliable
+#define PWMREF_MAX_CURRENTMEAS    35000    //Max PWM-reference duty cycle, where current measurement is still reliable
 
 //Power stage
 static calib_data_t calib_data = {
@@ -71,15 +71,21 @@ typedef struct{
 	sensor_cmd_t cmd;
 	int16_t iaref;   //int16, Q7.8
 	int16_t ibref;   //int16, Q7.8
-	int16_t iaval;   //int16, Q7.8
-	int16_t ibval;   //int16, Q7.8
-	uint32_t cnt_starta;
-	uint32_t cnt_stopa;
-	uint32_t cnt_startb;
-	uint32_t cnt_stopb;
+//	int16_t iaval;   //int16, Q7.8
+//	int16_t ibval;   //int16, Q7.8
+//	uint32_t cnt_starta;
+//	uint32_t cnt_stopa;
+//	uint32_t cnt_startb;
+//	uint32_t cnt_stopb;
+	pgenerator_lin_int16_data_t pg_a;
+	pgenerator_lin_int16_data_t pg_b;
 } sensor_data_t;
 
-static sensor_data_t mysensor;
+sensor_data_t mysensor;
+int16_t  pg_a_val[10];
+uint32_t pg_a_deltapos[10];
+int16_t  pg_b_val[10];
+uint32_t pg_b_deltapos[10];
 
 static void pwm_setrefint_3ph_tim1(int16_t ref[3]){
 	int i;
@@ -273,19 +279,17 @@ void sensor_calculation(void){
 		if(mysensor.pos > mysensor.trigpos){
 			mysensor.cnt = 0;
 			mysensor.state = sens_state_rdy;
+			pgenerator_lin_int16_reset(&mysensor.pg_a);
+			pgenerator_lin_int16_reset(&mysensor.pg_b);
 			datarec_trigger();
 		}
 	}
 	else if( mysensor.state == sens_state_rdy){
-		mysensor.cnt++;
+		int a_end, b_end;
+		a_end = pgenerator_lin_int16(&mysensor.pg_a, &mysensor.iaref);
+		b_end = pgenerator_lin_int16(&mysensor.pg_a, &mysensor.iaref);
 
-		if(   (mysensor.cnt > mysensor.cnt_starta) && (mysensor.cnt < mysensor.cnt_stopa)){
-			mysensor.iaref = mysensor.iaval; //for testing
-		}
-		if(   (mysensor.cnt > mysensor.cnt_startb) && (mysensor.cnt < mysensor.cnt_stopb)){
-			mysensor.ibref = mysensor.ibval; //for testing
-		}
-		if(mysensor.cnt > mysensor.cnt_stopb){
+		if(a_end && b_end){
 			mysensor.cmd = sens_cmd_reset;
 		}
 
@@ -320,24 +324,47 @@ void control_init(void){
 	myctrl.clock.s = 0;
 
 	//Sensor init
+	mysensor.pg_a.val = pg_a_val;
+	mysensor.pg_a.deltapos = pg_a_deltapos;
+	mysensor.pg_b.val = pg_b_val;
+	mysensor.pg_b.deltapos = pg_b_deltapos;
+
 #ifndef SINGLECOIL_DESIGN
 	mysensor.trigpos = 1000000;
 	mysensor.cnt_starta = 0;
 	mysensor.cnt_stopa = 250; //12.5*16;  //12.5ms
 	mysensor.iaval = 3500; //11.7*256;     //11.7A
 
+	mysensor.pg_a.numpos = 0;
+
 	mysensor.cnt_startb = 200; //12.5*16; //12.5ms
 	mysensor.cnt_stopb = 550; //50*16;    //50ms
 	mysensor.ibval = -4000; //16.4*256;     //16.4A
+
+	mysensor.pg_b.numpos = 0;
 #else
 	mysensor.trigpos = 8000;
-	mysensor.cnt_starta = 10;
-	mysensor.cnt_stopa =  470;  //even higher with 500
-	mysensor.iaval = 3300;
+//	mysensor.cnt_starta = 10;
+//	mysensor.cnt_stopa =  470;  //even higher with 500
+//	mysensor.iaval = 3300;
+	mysensor.pg_a.val[0] = 0;
+	mysensor.pg_a.deltapos[0] = 10;
+	mysensor.pg_a.val[1] = 0;
+	mysensor.pg_a.deltapos[1] = 0;
+	mysensor.pg_a.val[2] = 4500;
+	mysensor.pg_a.deltapos[2] = 450;
+	mysensor.pg_a.val[3] = 3500;
+	mysensor.pg_a.deltapos[3] = 0;
+	mysensor.pg_a.val[4] = 0;
+	mysensor.pg_a.deltapos[4] = 0;
+	mysensor.pg_a.val[5] = 0;
+	mysensor.pg_a.deltapos[5] = 32000;
+	mysensor.pg_a.numpos = 6;
 
-	mysensor.cnt_startb = 0;
-	mysensor.cnt_stopb = 16000;
-	mysensor.ibval = 0; //16.4*256;     //16.4A
+//	mysensor.cnt_startb = 0;
+//	mysensor.cnt_stopb = 16000;
+//	mysensor.ibval = 0; //16.4*256;     //16.4A
+	mysensor.pg_b.numpos = 0;
 #endif
 
 	mysensor.cnt = 0;
@@ -347,6 +374,9 @@ void control_init(void){
 	mysensor.level = 3500;
 	mysensor.hyst = 100;
 	mysensor.state = sens_state_wft;
+
+	pgenerator_lin_int16_reset(&mysensor.pg_a);
+	pgenerator_lin_int16_reset(&mysensor.pg_b);
 
 	LL_TIM_EnableIT_UPDATE(TIM1); //PWM interrupt
 }
