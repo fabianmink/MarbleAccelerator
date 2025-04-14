@@ -57,9 +57,12 @@ def thread_function():
             if(dataRead):
                 str = line.decode()
                 data = json.loads(str)    
-                sema_newData.release()
-        except json.decoder.JSONDecodeError:
+                
+        except (json.decoder.JSONDecodeError, UnicodeDecodeError):
             print("Decode Exception")
+            data = [];
+            
+        sema_newData.release()
             
             
      
@@ -105,7 +108,7 @@ x.start()
 while (not do_exit):
     #check for new data
     newData = sema_newData.acquire(False)
-    if(newData):
+    if(newData and (data != [])):
         ia = np.array(data['ia'] )/256
         ib = np.array(data['ib'] )/256
         ic = np.array(data['ic'] )/256
