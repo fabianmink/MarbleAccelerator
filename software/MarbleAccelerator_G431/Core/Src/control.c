@@ -297,11 +297,11 @@ void sensor_calculation(void){
 
 void control_init(void){
 	//Current controllers init
-	myctrl.pi_a.kp = 0.5  * 4*256;     // 0.5V/A
-	myctrl.pi_a.ki = 0.05 * 16*256;    // 0.05V/(A*Ts) = 0.8V/(A*ms) (@Ts = 0.0625ms)
+	myctrl.pi_a.kp = 1.0  * 4*256;     // 1.0V/A
+	myctrl.pi_a.ki = 0.1 * 16*256;     // 0.1V/(A*Ts) = 1.6V/(A*ms) (@Ts = 0.0625ms)
 #ifndef SINGLECOIL_DESIGN
-	myctrl.pi_b.kp = 0.25 * 4*256;     // 0.25V/A
-	myctrl.pi_b.ki = 0.05 * 16*256;    // 0.05V/(A*Ts) = 0.8V/(A*ms) (@Ts = 0.0625ms)
+	myctrl.pi_b.kp = 1.0 * 4*256;     // 1.0V/A
+	myctrl.pi_b.ki = 0.1 * 16*256;    // 0.1V/(A*Ts) = 1.6V/(A*ms) (@Ts = 0.0625ms)
 #endif
 	myctrl.iaref = 0;
 	myctrl.ibref = 0;
@@ -324,27 +324,27 @@ void control_init(void){
 	mysensor.pg_b.deltapos = pg_b_deltapos;
 
 #ifndef SINGLECOIL_DESIGN
-	mysensor.trigpos = 1000000;
+	mysensor.trigpos = 0;
 
 	mysensor.pg_a.val[0] = 0;
-	mysensor.pg_a.deltapos[0] = 10;
+	mysensor.pg_a.deltapos[0] = 0;
 	mysensor.pg_a.val[1] = 0;
-	mysensor.pg_a.deltapos[1] = 20;
-	mysensor.pg_a.val[2] = 3500;     //11.7*256;     //11.7A
-	mysensor.pg_a.deltapos[2] = 250; //12.5*16;  //12.5ms
-	mysensor.pg_a.val[3] = 3500;
+	mysensor.pg_a.deltapos[1] = 10;
+	mysensor.pg_a.val[2] = 2560;     // 10 A
+	mysensor.pg_a.deltapos[2] = 200; // 200/16 ms
+	mysensor.pg_a.val[3] = 2560;
 	mysensor.pg_a.deltapos[3] = 10;
 	mysensor.pg_a.val[4] = 0;
 	mysensor.pg_a.deltapos[4] = 8000;
 	mysensor.pg_a.numpos = 5;
 
 	mysensor.pg_b.val[0] = 0;
-	mysensor.pg_b.deltapos[0] = 210;
+	mysensor.pg_b.deltapos[0] = 180;
 	mysensor.pg_b.val[1] = 0;
-	mysensor.pg_b.deltapos[1] = 20;
-	mysensor.pg_b.val[2] = -4000;   //16.4*256;     //16.4A
-	mysensor.pg_b.deltapos[2] = 250;
-	mysensor.pg_b.val[3] = -4000;
+	mysensor.pg_b.deltapos[1] = 10;
+	mysensor.pg_b.val[2] = -3000;   //16.4*256;     //16.4A
+	mysensor.pg_b.deltapos[2] = 120;
+	mysensor.pg_b.val[3] = -3000;
 	mysensor.pg_b.deltapos[3] = 10;
 	mysensor.pg_b.val[4] = 0;
 	mysensor.pg_b.deltapos[4] = 8000;
