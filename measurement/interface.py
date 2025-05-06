@@ -38,6 +38,7 @@ def thread_function():
     ser_open = False
     try:
         ser = serial.Serial('COM9')  # open serial port
+        #ser = serial.Serial('COM7')  # open serial port
         ser_open = True
         ser.baudrate = 256000
         #ser.timeout = 0.1
