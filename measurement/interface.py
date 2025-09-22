@@ -85,8 +85,8 @@ ax_i.set_xlim(0, 50)
 ax_i.set_ylim(-20, 20)
 ax_i.grid(1)
 ax_i.set_xticks(np.arange(0, 50, step=2))
-ax_i.set_xlabel("$t  /  \mathrm{ms}$")
-ax_i.set_ylabel("$i  /  \mathrm{A}$")
+ax_i.set_xlabel(r"$t  /  \mathrm{ms}$")
+ax_i.set_ylabel(r"$i  /  \mathrm{A}$")
 
 line_ua,  = ax_u.plot(t,0*t, 'r-', linewidth=1);
 line_ub,  = ax_u.plot(t,0*t, 'g-', linewidth=1);
@@ -98,8 +98,8 @@ ax_u.set_xlim(0, 50)
 ax_u.set_ylim(-20, 20)
 ax_u.grid(1)
 ax_u.set_xticks(np.arange(0, 50, step=2))
-ax_u.set_xlabel("$t  /  \mathrm{ms}$")
-ax_u.set_ylabel("$u  /  \mathrm{V}$")
+ax_u.set_xlabel(r"$t  /  \mathrm{ms}$")
+ax_u.set_ylabel(r"$u  /  \mathrm{V}$")
 
 
 #x = threading.Thread(target=thread_function)
