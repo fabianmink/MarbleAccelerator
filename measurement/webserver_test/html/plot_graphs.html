@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Marble Accelerator</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  </head>
+  <body>
+    <h1>Marble Accelerator</h1>
+    
+    <div id="chart1"></div>
+    <div id="chart2"></div>
+    <div id="chart3"></div>
+    <div id="chart4"></div>
+    
+    <div id="rawdata"></div> <!-- show received raw values for debugging -->
+    
+    <script>
+	
+const layout_template = (title, x_label, y_label) => ({
+title: title,
+xaxis: {
+	title: x_label,
+	showline: true,
+	linecolor: 'black',
+	linewidth: 2,
+	ticks: 'outside',
+	showgrid: true
+},
+yaxis: {
+	title: y_label,
+	showline: true,
+	linecolor: 'black',
+	linewidth: 2,
+	ticks: 'outside',
+	showgrid: true
+}
+});
+	
+// Generate X-axis values (0, 0.1, 0.2, ..., 9.9)
+let x_vals = Array.from({length: 100}, (_, i) => (i * 0.1).toFixed(1));
+let y_vals_dummy = Array.from({length: 100}, (_, i) => (i * 0.0).toFixed(1));
+
+const rawDataElement = document.querySelector("#rawdata");
+
+var data1 = [{ x: x_vals, y: y_vals_dummy, type: "scatter" }];
+var data2 = [{ x: x_vals, y: y_vals_dummy, type: "scatter" }];
+var data3 = [{ x: x_vals, y: y_vals_dummy, type: "scatter" }];
+var data4 = [{ x: x_vals, y: y_vals_dummy, type: "scatter" }];
+
+fig1 = Plotly.newPlot("chart1", data1, layout_template("D1", "Time (ms)", "D1 values"));
+fig2 = Plotly.newPlot("chart2", data2, layout_template("D2", "Time (ms)", "D2 values"));
+fig3 = Plotly.newPlot("chart3", data3, layout_template("D3", "Time (ms)", "D3 values"));
+fig4 = Plotly.newPlot("chart4", data4, layout_template("D4", "Time (ms)", "D4 values"));
+	
+	
+let url = "ws://" + location.host + "/ws";
+//document.write(url);
+let ws = new WebSocket(url);
+
+// Connection opened
+ws.onopen = (event) => {
+  ws.send("Hello World from Browser!\n");
+};
+
+ws.onmessage = (event) => {
+    let data = JSON.parse(event.data);
+    let d1 = data.D1 || [];
+    let d2 = data.D2 || [];
+    let d3 = data.D3 || [];
+    let d4 = data.D4 || [];  //D4 added for KE
+    // let d4 = d1.map((v, i) => 0.5 * 0.008 * (1.61 + 0.5 * Math.sin(i * 0.1)) ** 2);
+	
+	ws.send("Data received by browser\n");
+	
+	rawDataElement.innerHTML = event.data;
+	
+	data1[0]['y'] = d1; 
+	data2[0]['y'] = d2; 
+	data3[0]['y'] = d3; 
+    data4[0]['y'] = d4; 
+    Plotly.redraw('chart1');
+    Plotly.redraw('chart2');
+    Plotly.redraw('chart3');
+    Plotly.redraw('chart4');
+};
+</script>
+
+
+  </body>
+</html>
