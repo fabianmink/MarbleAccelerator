@@ -1,0 +1,9 @@
+Power Switches
+BTS 6163 D Smart Highside Power Switch
+
+DC-DC converter
+MC34063A
+
+Reflective Optical Sensor
+CNY 70
+ELI TR9904
