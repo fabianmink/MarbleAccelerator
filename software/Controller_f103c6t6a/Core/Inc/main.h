@@ -28,6 +28,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f1xx_hal.h"
+#include "stm32f1xx_ll_adc.h"
 #include "stm32f1xx_ll_rcc.h"
 #include "stm32f1xx_ll_bus.h"
 #include "stm32f1xx_ll_system.h"
@@ -62,7 +63,18 @@ typedef struct
 	//int ready;
 } pulse_t;
 
+typedef struct
+{
+	int16_t adc_data_v0;
+	int16_t adc_data_v1;
+	uint16_t adc_ch;
+	uint16_t pwm_vref;
+} control_t;
+
 extern pulse_t pulse_data;
+extern control_t control_data;
+
+
 
 /* USER CODE END ET */
 
