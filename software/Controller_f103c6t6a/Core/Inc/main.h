@@ -68,6 +68,12 @@ typedef struct
 	int16_t adc_data_v0;
 	int16_t adc_data_v1;
 	uint16_t pwm_vref;
+	uint16_t rep_cnt;
+	int active;
+	float vCap;
+	float vCapRef;
+	float pulseLen;
+	float pulseRep;
 } control_t;
 
 extern pulse_t pulse_data;

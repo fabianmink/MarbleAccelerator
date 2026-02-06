@@ -187,7 +187,10 @@ int main(void)
   //int encpos = -100;
 
   pulse_data.state = ssi_state_idle;
-  pulse_data.len = 3200*20* 10.5;  //10.5ms
+
+  control_data.vCapRef = 15.0f; //V
+  control_data.pulseLen = 5.0f; //ms
+  control_data.pulseRep = 1.0;  //s
 
   LL_ADC_Enable(ADC1);
   LL_ADC_REG_StartConversionExtTrig(ADC1, LL_ADC_REG_TRIG_EXT_RISING);
@@ -208,15 +211,36 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	  LL_GPIO_SetOutputPin(LED_GPIO_Port, LED_Pin);
-	  LL_mDelay(800);
-	  LL_GPIO_ResetOutputPin(LED_GPIO_Port, LED_Pin);
-	  LL_mDelay(200);
+	  control_data.pwm_vref = (4096.0f/3.3f) * (1.563f - 0.0625f*control_data.vCapRef);
+	  control_data.vCap = control_data.adc_data_v0*(3.3f/4096.0f)*10.1f  * 1.027;  //1.027 is adjustment factor
 
-	  pulse_data.start = 1;
+	  uint32_t puls_len_pwm = control_data.pulseLen*(3200.0f*20.0f);
+	  if(puls_len_pwm > 3200*20*100) puls_len_pwm = 3200*20*100;
+	  pulse_data.len = puls_len_pwm;
+
+	  LL_GPIO_SetOutputPin(LED_GPIO_Port, LED_Pin);
+	  LL_mDelay(80);
+	  LL_GPIO_ResetOutputPin(LED_GPIO_Port, LED_Pin);
+	  LL_mDelay(20);
+
+	  float pulsrepcycle = control_data.pulseRep*10.0f;
+	  if (pulsrepcycle < 5.0f) pulsrepcycle =  5.0f;    //min 0.5
+	  if (pulsrepcycle > 1000.0f) pulsrepcycle = 1000.0f; //max 100s
+
+	  if(control_data.rep_cnt > pulsrepcycle) control_data.rep_cnt = pulsrepcycle;
+
+	  if(control_data.rep_cnt > 0){
+		  control_data.rep_cnt--;
+	  }
+	  else{
+		  if (control_data.active){
+			  pulse_data.start = 1;
+			  control_data.rep_cnt = pulsrepcycle;
+		  }
+	  }
 
 	  char sval[10];
-	  itoa(123, sval, 10); //Base 10 (dec)  //dummy data
+	  itoa(control_data.adc_data_v0, sval, 10); //Base 10 (dec)  //dummy data
 	  //itoa(encpos, sval, 16); //Base 16 (hex)
 	  //todo leading zeros:
 	  //Let itoa() convert
