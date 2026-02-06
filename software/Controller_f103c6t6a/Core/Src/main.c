@@ -107,37 +107,42 @@ void main_ctrl(void){
 	// *** Set v_Ref PWM duty cycle ***
 	LL_TIM_OC_SetCompareCH2(TIM3, control_data.pwm_vref);
 
-
 	uint16_t adc_timeout = 0;
-	while(!LL_ADC_IsActiveFlag_EOS(ADC1)){
-		//Error after certain time, if adc will not get ready!, stop PWM!
-		adc_timeout++;
-		if (adc_timeout >= 10) {
-			//ERROR!!
-		}
-	}
-
+	//currently no regular conversion used
+	//regular conversion is only enabled because injected conversion is auto-triggered
+	//at end of regular conversions
+	//while(!LL_ADC_IsActiveFlag_EOS(ADC1)){
+	//	//Error after certain time, if adc will not get ready!, stop PWM!
+	//	if (adc_timeout >= 10) {
+	//		//ERROR!!
+	//	}
+	//	else {
+	//		adc_timeout++;
+	//	}
+	//}
 	//get ADC value and switch to next channel
-	if(control_data.adc_ch == 0){
-		control_data.adc_data_v0 = (int16_t) LL_ADC_REG_ReadConversionData12(ADC1);
-		LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_1, LL_ADC_CHANNEL_2);
-		control_data.adc_ch = 1;
-	}
-	else {
-		control_data.adc_data_v1 = (int16_t) LL_ADC_REG_ReadConversionData12(ADC1);
-		LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_1, LL_ADC_CHANNEL_1);
-		control_data.adc_ch = 0;
-	}
+	//if(control_data.adc_ch == 0){
+	//	value = (int16_t) LL_ADC_REG_ReadConversionData12(ADC1);
+	//	LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_1, LL_ADC_CHANNEL_2);
+	//	control_data.adc_ch = 1;
+	//}
+	//else {
+	//	value = (int16_t) LL_ADC_REG_ReadConversionData12(ADC1);
+	//	LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_1, LL_ADC_CHANNEL_1);
+	//	control_data.adc_ch = 0;
+	//}
 
 	while(!LL_ADC_IsActiveFlag_JEOS(ADC1)){
 		//Error after certain time, if adc will not get ready!, stop PWM!
-		adc_timeout++;
 		if (adc_timeout >= 10) {
 			//ERROR!!
 		}
+		else {
+			adc_timeout++;
+		}
 	}
-	control_data.adc_data_v2 = (int16_t) LL_ADC_INJ_ReadConversionData12(ADC1, LL_ADC_INJ_RANK_1);
-	control_data.adc_data_v3 = (int16_t) LL_ADC_INJ_ReadConversionData12(ADC1, LL_ADC_INJ_RANK_2);
+	control_data.adc_data_v0 = (int16_t) LL_ADC_INJ_ReadConversionData12(ADC1, LL_ADC_INJ_RANK_1);
+	control_data.adc_data_v1 = (int16_t) LL_ADC_INJ_ReadConversionData12(ADC1, LL_ADC_INJ_RANK_2);
 }
 
 
