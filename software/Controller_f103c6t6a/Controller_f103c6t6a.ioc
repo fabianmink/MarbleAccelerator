@@ -1,14 +1,23 @@
 #MicroXplorer Configuration settings - do not modify
 ADC1.Channel-3\#ChannelRegularConversion=ADC_CHANNEL_1
-ADC1.EnableInjectedConversion=DISABLE
+ADC1.Channel-4\#ChannelInjectedConversion=ADC_CHANNEL_1
+ADC1.Channel-5\#ChannelInjectedConversion=ADC_CHANNEL_2
+ADC1.EnableInjectedConversion=ENABLE
 ADC1.EnableRegularConversion=ENABLE
 ADC1.ExternalTrigConv=ADC_EXTERNALTRIGCONV_T3_TRGO
-ADC1.IPParameters=master,EnableRegularConversion,EnableInjectedConversion,InjNumberOfConversion,Rank-3\#ChannelRegularConversion,Channel-3\#ChannelRegularConversion,SamplingTime-3\#ChannelRegularConversion,NbrOfConversionFlag,NbrOfConversion,ExternalTrigConv
-ADC1.InjNumberOfConversion=1
+ADC1.IPParameters=master,EnableRegularConversion,EnableInjectedConversion,InjNumberOfConversion,Rank-3\#ChannelRegularConversion,Channel-3\#ChannelRegularConversion,SamplingTime-3\#ChannelRegularConversion,NbrOfConversionFlag,NbrOfConversion,ExternalTrigConv,InjectedRank-4\#ChannelInjectedConversion,Channel-4\#ChannelInjectedConversion,SamplingTime-4\#ChannelInjectedConversion,InjectedOffset-4\#ChannelInjectedConversion,InjectedRank-5\#ChannelInjectedConversion,Channel-5\#ChannelInjectedConversion,SamplingTime-5\#ChannelInjectedConversion,InjectedOffset-5\#ChannelInjectedConversion,InjectedConvMode
+ADC1.InjNumberOfConversion=2
+ADC1.InjectedConvMode=AutoInjected
+ADC1.InjectedOffset-4\#ChannelInjectedConversion=0
+ADC1.InjectedOffset-5\#ChannelInjectedConversion=0
+ADC1.InjectedRank-4\#ChannelInjectedConversion=1
+ADC1.InjectedRank-5\#ChannelInjectedConversion=2
 ADC1.NbrOfConversion=1
 ADC1.NbrOfConversionFlag=1
 ADC1.Rank-3\#ChannelRegularConversion=1
 ADC1.SamplingTime-3\#ChannelRegularConversion=ADC_SAMPLETIME_1CYCLE_5
+ADC1.SamplingTime-4\#ChannelInjectedConversion=ADC_SAMPLETIME_1CYCLE_5
+ADC1.SamplingTime-5\#ChannelInjectedConversion=ADC_SAMPLETIME_1CYCLE_5
 ADC1.master=1
 CAD.formats=
 CAD.pinconfig=

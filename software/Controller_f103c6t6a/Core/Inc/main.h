@@ -67,6 +67,8 @@ typedef struct
 {
 	int16_t adc_data_v0;
 	int16_t adc_data_v1;
+	int16_t adc_data_v2;
+	int16_t adc_data_v3;
 	uint16_t adc_ch;
 	uint16_t pwm_vref;
 } control_t;

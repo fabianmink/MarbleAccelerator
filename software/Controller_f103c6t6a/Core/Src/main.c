@@ -104,6 +104,10 @@ void main_ctrl(void){
 		pulse_data.state = ssi_state_idle;
 	}
 
+	// *** Set v_Ref PWM duty cycle ***
+	LL_TIM_OC_SetCompareCH2(TIM3, control_data.pwm_vref);
+
+
 	uint16_t adc_timeout = 0;
 	while(!LL_ADC_IsActiveFlag_EOS(ADC1)){
 		//Error after certain time, if adc will not get ready!, stop PWM!
@@ -112,9 +116,6 @@ void main_ctrl(void){
 			//ERROR!!
 		}
 	}
-
-	// *** Set v_Ref PWM duty cycle ***
-	LL_TIM_OC_SetCompareCH2(TIM3, control_data.pwm_vref);
 
 	//get ADC value and switch to next channel
 	if(control_data.adc_ch == 0){
@@ -127,6 +128,16 @@ void main_ctrl(void){
 		LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_1, LL_ADC_CHANNEL_1);
 		control_data.adc_ch = 0;
 	}
+
+	while(!LL_ADC_IsActiveFlag_JEOS(ADC1)){
+		//Error after certain time, if adc will not get ready!, stop PWM!
+		adc_timeout++;
+		if (adc_timeout >= 10) {
+			//ERROR!!
+		}
+	}
+	control_data.adc_data_v2 = (int16_t) LL_ADC_INJ_ReadConversionData12(ADC1, LL_ADC_INJ_RANK_1);
+	control_data.adc_data_v3 = (int16_t) LL_ADC_INJ_ReadConversionData12(ADC1, LL_ADC_INJ_RANK_2);
 }
 
 
@@ -277,6 +288,7 @@ static void MX_ADC1_Init(void)
   LL_ADC_InitTypeDef ADC_InitStruct = {0};
   LL_ADC_CommonInitTypeDef ADC_CommonInitStruct = {0};
   LL_ADC_REG_InitTypeDef ADC_REG_InitStruct = {0};
+  LL_ADC_INJ_InitTypeDef ADC_INJ_InitStruct = {0};
 
   LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
 
@@ -299,7 +311,7 @@ static void MX_ADC1_Init(void)
   /** Common config
   */
   ADC_InitStruct.DataAlignment = LL_ADC_DATA_ALIGN_RIGHT;
-  ADC_InitStruct.SequencersScanMode = LL_ADC_SEQ_SCAN_DISABLE;
+  ADC_InitStruct.SequencersScanMode = LL_ADC_SEQ_SCAN_ENABLE;
   LL_ADC_Init(ADC1, &ADC_InitStruct);
   ADC_CommonInitStruct.Multimode = LL_ADC_MULTI_INDEPENDENT;
   LL_ADC_CommonInit(__LL_ADC_COMMON_INSTANCE(ADC1), &ADC_CommonInitStruct);
@@ -309,11 +321,28 @@ static void MX_ADC1_Init(void)
   ADC_REG_InitStruct.ContinuousMode = LL_ADC_REG_CONV_SINGLE;
   ADC_REG_InitStruct.DMATransfer = LL_ADC_REG_DMA_TRANSFER_NONE;
   LL_ADC_REG_Init(ADC1, &ADC_REG_InitStruct);
+  ADC_INJ_InitStruct.TriggerSource = LL_ADC_INJ_TRIG_SOFTWARE;
+  ADC_INJ_InitStruct.SequencerLength = LL_ADC_INJ_SEQ_SCAN_ENABLE_2RANKS;
+  ADC_INJ_InitStruct.SequencerDiscont = LL_ADC_INJ_SEQ_DISCONT_DISABLE;
+  ADC_INJ_InitStruct.TrigAuto = LL_ADC_INJ_TRIG_FROM_GRP_REGULAR;
+  LL_ADC_INJ_Init(ADC1, &ADC_INJ_InitStruct);
 
   /** Configure Regular Channel
   */
   LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_1, LL_ADC_CHANNEL_1);
   LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_1, LL_ADC_SAMPLINGTIME_1CYCLE_5);
+
+  /** Configure Injected Channel
+  */
+  LL_ADC_INJ_SetSequencerRanks(ADC1, LL_ADC_INJ_RANK_1, LL_ADC_CHANNEL_1);
+  LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_1, LL_ADC_SAMPLINGTIME_1CYCLE_5);
+  LL_ADC_INJ_SetOffset(ADC1, LL_ADC_INJ_RANK_1, 0);
+
+  /** Configure Injected Channel
+  */
+  LL_ADC_INJ_SetSequencerRanks(ADC1, LL_ADC_INJ_RANK_2, LL_ADC_CHANNEL_2);
+  LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_2, LL_ADC_SAMPLINGTIME_1CYCLE_5);
+  LL_ADC_INJ_SetOffset(ADC1, LL_ADC_INJ_RANK_2, 0);
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
