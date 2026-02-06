@@ -188,9 +188,10 @@ int main(void)
 
   pulse_data.state = ssi_state_idle;
 
-  control_data.vCapRef = 15.0f; //V
-  control_data.pulseLen = 5.0f; //ms
-  control_data.pulseRep = 1.0;  //s
+  control_data.vCapRef = 24.5f; //V
+  control_data.pulseLen = 12.5f; //ms
+  control_data.pulseRep = 10.0;  //s
+  control_data.active = 1;
 
   LL_ADC_Enable(ADC1);
   LL_ADC_REG_StartConversionExtTrig(ADC1, LL_ADC_REG_TRIG_EXT_RISING);
