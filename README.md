@@ -85,6 +85,11 @@ Coil electromagnetic subsystem:
 
 The software is designed for STM's B-G431B-ESC1 (Discovery kit with STM32G431CB MCU); it also includes the neccessary power MOSFETs. The supply voltage is 24V. An external capacitor of approximately 20mF is recommended in order to provide the high pulsed currents of 10..20A for durations of a few 10ms.
 
+### Boost Converter
+
+In case the coil should be battery-powered (e.g. from 3x AA alkaline cells / 4.5V), the boost converter board can be used.
+
+![Boost Converter Board](img/boost_converter.png)
 
 ## Simlar projects
 
