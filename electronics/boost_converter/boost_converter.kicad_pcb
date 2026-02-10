@@ -1079,7 +1079,7 @@
 		(descr "Varistor, diameter 9mm, width 3.3mm, pitch 5mm")
 		(tags "varistor SIOV")
 		(property "Reference" "TH1"
-			(at 2.5 3.25 0)
+			(at 9 1.235 0)
 			(layer "F.SilkS")
 			(uuid "1feb5c1c-b696-481a-99bc-fc45543c8953")
 			(effects
@@ -6789,7 +6789,7 @@
 			)
 		)
 		(property "Value" "MountingHole"
-			(at 0 4.15 0)
+			(at 0 -3.565 0)
 			(layer "F.Fab")
 			(uuid "c2e364eb-2fc9-4b01-9919-7c9ca8003ebf")
 			(effects
@@ -9640,6 +9640,42 @@
 		(fill no)
 		(layer "F.CrtYd")
 		(uuid "93583ee1-eb07-4e69-b596-f5ccc1303dc2")
+	)
+	(gr_text "Boost Converter"
+		(at 104.775 52.705 0)
+		(layer "F.SilkS")
+		(uuid "442eb8ee-1fb1-405a-a8f8-3fc74c3538e4")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1)
+			)
+			(justify left bottom)
+		)
+	)
+	(gr_text "V.1.0"
+		(at 113.03 61.595 0)
+		(layer "F.SilkS")
+		(uuid "5c28b443-b424-461e-8b45-dd3a20dad073")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1)
+			)
+			(justify left bottom)
+		)
+	)
+	(gr_text "2026-02-10"
+		(at 113.03 63.5 0)
+		(layer "F.SilkS")
+		(uuid "6c70f53e-f356-400b-896e-211fbc8422ce")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1)
+			)
+			(justify left bottom)
+		)
 	)
 	(segment
 		(start 88.9 73.66)
