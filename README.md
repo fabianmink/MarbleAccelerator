@@ -91,6 +91,13 @@ In case the coil should be battery-powered (e.g. from 3x AA alkaline cells / 4.5
 
 ![Boost Converter Board](img/boost_converter.png)
 
+
+### Hi-Side Switch
+
+Can be used to power the coil.
+
+![Hi-Side Switch Board](img/hiside_switch.png)
+
 ## Simlar projects
 
 - [lincoln1clarke (Instructables) - Electromagnetic Marble Accelerator for Gravitrax](https://www.instructables.com/Electromagnetic-Marble-Accelerator-for-Gravitrax/)
