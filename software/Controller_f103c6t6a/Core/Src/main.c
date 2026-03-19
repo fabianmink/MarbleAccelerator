@@ -191,7 +191,8 @@ int main(void)
   control_data.vCapRef = 24.5f;  //V
   control_data.vCapTol = 0.5f;   //V
   control_data.pulseLen = 10.0f; //ms
-  control_data.pulseRep = 10.0;  //s
+  control_data.pulseRep = 10.0f;  //s
+  control_data.voltok = 2.0f;     //s
   control_data.active = 1;
 
   LL_ADC_Enable(ADC1);
@@ -226,16 +227,23 @@ int main(void)
 	  LL_mDelay(20);
 
 	  float pulsrepcycle = control_data.pulseRep*10.0f;
+	  float voltokcycle = control_data.voltok*10.0f;
 	  if (pulsrepcycle < 5.0f) pulsrepcycle =  5.0f;    //min 0.5
 	  if (pulsrepcycle > 1000.0f) pulsrepcycle = 1000.0f; //max 100s
 
 	  if(control_data.rep_cnt > pulsrepcycle) control_data.rep_cnt = pulsrepcycle;
 
+	  if( (control_data.vCap < (control_data.vCapRef-control_data.vCapTol)) || (control_data.vCap > (control_data.vCapRef+control_data.vCapTol)) ){
+		  if(control_data.rep_cnt < voltokcycle){
+			  control_data.rep_cnt=voltokcycle;
+		  }
+	  }
+
 	  if(control_data.rep_cnt > 0){
 		  control_data.rep_cnt--;
 	  }
 	  else{
-		  if (control_data.active && control_data.vCap > (control_data.vCapRef - control_data.vCapTol)){
+		  if (control_data.active){
 			  pulse_data.start = 1;
 			  control_data.rep_cnt = pulsrepcycle;
 		  }

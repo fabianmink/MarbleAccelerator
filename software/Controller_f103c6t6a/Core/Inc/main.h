@@ -75,6 +75,7 @@ typedef struct
 	float vCapTol;  //Tolerance
 	float pulseLen;
 	float pulseRep;
+	float voltok;   //time for that voltage must be in range
 } control_t;
 
 extern pulse_t pulse_data;
