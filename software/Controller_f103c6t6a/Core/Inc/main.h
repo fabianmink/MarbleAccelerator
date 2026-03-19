@@ -72,6 +72,7 @@ typedef struct
 	int active;
 	float vCap;
 	float vCapRef;
+	float vCapTol;  //Tolerance
 	float pulseLen;
 	float pulseRep;
 } control_t;

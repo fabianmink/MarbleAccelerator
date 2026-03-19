@@ -188,8 +188,9 @@ int main(void)
 
   pulse_data.state = ssi_state_idle;
 
-  control_data.vCapRef = 24.5f; //V
-  control_data.pulseLen = 12.5f; //ms
+  control_data.vCapRef = 24.5f;  //V
+  control_data.vCapTol = 0.5f;   //V
+  control_data.pulseLen = 10.0f; //ms
   control_data.pulseRep = 10.0;  //s
   control_data.active = 1;
 
@@ -234,7 +235,7 @@ int main(void)
 		  control_data.rep_cnt--;
 	  }
 	  else{
-		  if (control_data.active){
+		  if (control_data.active && control_data.vCap > (control_data.vCapRef - control_data.vCapTol)){
 			  pulse_data.start = 1;
 			  control_data.rep_cnt = pulsrepcycle;
 		  }
