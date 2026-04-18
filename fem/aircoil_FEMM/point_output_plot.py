@@ -21,6 +21,7 @@ Bz = values[:,4]
 
 B = np.sqrt(Br**2 + Bz**2)
 
+zm = -15
 
 # #INTERPOLATE
 # # Create grid
@@ -63,7 +64,7 @@ contour = ax.contour(xivf, yiv, Aif, np.linspace(Aif.min(),Aif.max(),20)[1:], co
 ax.set_aspect('equal', 'box')
 
 
-marble = patches.Circle((0, -15), 12.7/2, color='black', fill=False)
+marble = patches.Circle((0, zm), 12.7/2, color='black', fill=False)
 coilr =  patches.Rectangle((8.4, -7.5), 7.6, 15, color='black', fill=False)
 coill =  patches.Rectangle((-8.4, -7.5), -7.6, 15, color='black', fill=False)
 
