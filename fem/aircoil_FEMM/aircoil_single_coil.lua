@@ -100,7 +100,7 @@ mo_clearblock()
 str = Icoil .. "A, ".. zm .. "mm, " .. Fr .. "N, " .. Fz .. "N, " .. Eco .. "Ws, " .. Emag .. "Ws"
 print(str)
 
-extract_point_values(30, 0.1, 30, 0.1, "point_output.csv")
+extract_point_values(30, 0.5, 30, 0.5, "point_output_" .. zm .. "mm_" .. Icoil .. "A.csv")
 
 --mo_showdensityplot(1,0,1.0,0.0,"bmag")
 --mo_zoomnatural()
