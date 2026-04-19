@@ -30,6 +30,8 @@ Icoil = 20
 
 --marble z position
 zm = -15  
+rm = 12.7/2  --marble radius
+mgroupno = 1
 
 --Geometry (for 0.5mm Wire diameter)
 l_coil = 15   --coil length
@@ -37,7 +39,6 @@ ri = 8.4 --coil inner radius
 ro = 16 --coil outer radius
 Ncoil = 180 --number of turns per coil 
 
-rm = 12.7/2  --marble radius
 
 rbound = 150   --radius outer boundary
 
@@ -45,25 +46,19 @@ am = 1 --Automesh on
 ms = 10 --Mesh size (optional, only if automesh off)
 
 
+dofile("marble_accelerator.lua") 
+
 newdocument(0)
 mi_probdef(0,"millimeters","axi",1e-008)
 
+--Get Materials
+mi_getmaterial('Air')
+mi_getmaterial('Copper')
+mi_getmaterial('Steel castings, as cast');
+
 --construct coil
-mi_addnode(ri,l_coil/2)
-mi_addnode(ri,-l_coil/2)
-mi_addnode(ro,l_coil/2)
-mi_addnode(ro,-l_coil/2)
-mi_addsegment(ri,-l_coil/2,ri,l_coil/2)
-mi_addsegment(ri,l_coil/2,ro,l_coil/2)
-mi_addsegment(ro,-l_coil/2,ro,l_coil/2)
-mi_addsegment(ri,-l_coil/2,ro,-l_coil/2)
-
-
---construct marble
-mi_addnode(0,zm+rm)	
-mi_addnode(0,zm-rm)
-mi_addarc(0,(zm-rm),0,(zm+rm),180,1)
-
+coil_create(ri, ro, l_coil, 0, 'Copper', 'circ_coil', Ncoil)
+marble_create(rm, zm, 'Steel castings, as cast', mgroupno)
 
 --boundary
 mi_addnode(0,rbound)
@@ -71,24 +66,6 @@ mi_addnode(0,-rbound)
 mi_addsegment(0,-rbound,0,rbound)
 mi_addarc(0,-rbound,0,rbound,180,1)
 
---Load and select materials
---mi_addcircprop('circuit', Icoil, 1) 
-
-mi_getmaterial('Air')	
-mi_getmaterial('Copper')
-mi_getmaterial('Steel castings, as cast');
-
--- coil 
-mi_addblocklabel((ri+ro)/2,0)	
-mi_selectlabel((ri+ro)/2,0)	
-mi_setblockprop('Copper',am,ms,'circuit',90,0,Ncoil)    
-mi_clearselected()
-
---Marble
-mi_addblocklabel(1,zm)	
-mi_selectlabel(1,zm)
-mi_setblockprop('Steel castings, as cast',am,ms,'',0,0,0)    
-mi_clearselected()
 
 --Air
 mi_addblocklabel(ro+1,0)
@@ -104,19 +81,17 @@ mi_clearselected()
 
 mi_saveas("marble_coil.fem")
 
-
-
-mi_addcircprop('circuit', Icoil, 1) -- circuit, series connection
+mi_modifycircprop('circ_coil',1,Icoil)
 
 mi_analyze(0)
 mi_loadsolution()
-	
 
-mo_selectblock(1,zm)
+
+mo_groupselectblock(mgroupno) --select marble
 Fr = mo_blockintegral(18)
 Fz = mo_blockintegral(19)
 mo_clearblock()
-	
+
 mo_groupselectblock()  --select everything
 Emag = mo_blockintegral(2)
 Eco = mo_blockintegral(17)
@@ -124,6 +99,8 @@ mo_clearblock()
 
 str = Icoil .. "A, ".. zm .. "mm, " .. Fr .. "N, " .. Fz .. "N, " .. Eco .. "Ws, " .. Emag .. "Ws"
 print(str)
+
+extract_point_values(30, 0.1, 30, 0.1, "point_output.csv")
 
 --mo_showdensityplot(1,0,1.0,0.0,"bmag")
 --mo_zoomnatural()
