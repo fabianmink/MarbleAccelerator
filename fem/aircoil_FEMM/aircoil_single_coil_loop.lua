@@ -30,9 +30,9 @@ Icoil_min = 20
 Icoil_max = 20
 Icoil_step = 10 --must not be zero, even if min and max are identical; otherwise infinite loop
 
-zm_min = -40
-zm_max = 30
-zm_step = 2 --must not be zero, even if min and max are identical; otherwise infinite loop
+zm_min = -20
+zm_max = 20
+zm_step = 1 --must not be zero, even if min and max are identical; otherwise infinite loop
 
 
 --marble z position
@@ -109,8 +109,9 @@ Eco = mo_blockintegral(17)
 mo_clearblock()
 
 str = Icoil .. "A, ".. zm .. "mm, " .. Fr .. "N, " .. Fz .. "N, " .. Eco .. "Ws, " .. Emag .. "Ws"
+strf = Icoil .. ", " .. zm .. ", " .. Fr .. ", " .. Fz .. ", " .. Eco .. ", " .. Emag
 print(str)
-write(fileout,str.."\n")
+write(fileout,strf .. "\n")
 
 extract_point_values(30, 0.5, 30, 0.5, "point_output_" .. zm .. "mm_" .. Icoil .. "A.csv")
 
