@@ -1,4 +1,3 @@
---0
 --  Simulation of steel marble in coil (FEMM)
 --  
 --  Copyright (c) 2025 Fabian Mink <fabian.mink@iem.thm.de>
