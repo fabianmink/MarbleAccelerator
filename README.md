@@ -1,5 +1,5 @@
 # Marble Accelerator
-This project deals with the construction of various accelerators (coil guns) for metallic marbles. It might be used e.g. for the GraviTrax marble run. It has been used in various student projects in electrical engineering bachelor's and master's programs in the IEM department at the THM Friedberg, e.g. [this one](https://www.youtube.com/watch?v=bSArWLXCZdo) 
+This project deals with the construction of various accelerators (coil guns) for metallic marbles. It might be used e.g. for the GraviTrax marble run (Marble data: $m = 8.6 \mathrm{g}$, $d = 12.7 \mathrm{mm}$ ). It has been used in various student projects in electrical engineering bachelor's and master's programs in the IEM department at the THM Friedberg, e.g. [this one](https://www.youtube.com/watch?v=bSArWLXCZdo) 
 
 ![Horizontal design complete](img/horizontal_complete.jpg) 
 
