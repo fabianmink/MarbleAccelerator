@@ -24,8 +24,6 @@
 --   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-zm = -15
-
 --Geometry (for 0.5mm Wire diameter)
 l_coil = 15   --coil length
 ri = 8.4 --coil inner radius
@@ -59,9 +57,17 @@ function marble_create(r, z, material, groupno)
 	ms = 10 --Mesh size (if automesh off)
 	
 	--construct marble
-	mi_addnode(0,z+rm)	
+	mi_addnode(0,z+rm)
 	mi_addnode(0,z-rm)
+	mi_clearselected()
+	mi_selectnode(0,z+rm)
+	mi_selectnode(0,z-rm)
+	mi_setnodeprop("",groupno) --set group
+	mi_clearselected()
 	mi_addarc(0,(z-rm),0,(z+rm),180,1)
+	mi_selectarcsegment(0,(z-rm))
+	mi_setarcsegmentprop(1,"",0,groupno) --set group
+	mi_clearselected()
 
 	--Marble
 	mi_addblocklabel(r/2,z)
